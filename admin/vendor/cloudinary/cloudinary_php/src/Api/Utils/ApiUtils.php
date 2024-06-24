@@ -14,6 +14,7 @@ use Cloudinary\ArrayUtils;
 use Cloudinary\Asset\AssetTransformation;
 use Cloudinary\ClassUtils;
 use Cloudinary\Configuration\CloudConfig;
+use Cloudinary\Transformation\Transformation;
 use Cloudinary\Utils;
 
 /**
@@ -76,6 +77,10 @@ class ApiUtils
      */
     public static function serializeContext($context)
     {
+        if (is_array($context)) {
+            $context = array_map('\Cloudinary\Api\ApiUtils::serializeJson', $context);
+        }
+
         return self::serializeParameter($context, self::CONTEXT_OUTER_DELIMITER, self::CONTEXT_INNER_DELIMITER);
     }
 
@@ -92,6 +97,11 @@ class ApiUtils
     {
         if ($jsonParam === null) {
             return null;
+        }
+
+        // Avoid extra double quotes around strings.
+        if (is_string($jsonParam) || (is_object($jsonParam) && method_exists($jsonParam, '__toString'))) {
+            return $jsonParam;
         }
 
         return json_encode($jsonParam); //TODO: serialize dates
@@ -139,7 +149,7 @@ class ApiUtils
             return self::serializeSimpleApiParam($array);
         }
 
-        $array = array_map('self::serializeSimpleApiParam', $array);
+        $array = array_map(self::class . '::serializeSimpleApiParam', $array);
 
 
         return self::serializeParameter($array, self::ARRAY_OF_ARRAYS_DELIMITER);
@@ -166,6 +176,20 @@ class ApiUtils
         }
 
         return ArrayUtils::implodeFiltered(self::ASSET_TRANSFORMATIONS_DELIMITER, $serializedTransformations);
+    }
+
+    /**
+     * Serializes incoming transformation.
+     *
+     * @param array|string $transformationParams
+     *
+     * @return string The resulting serialized parameter.
+     *
+     * @internal
+     */
+    public static function serializeTransformation($transformationParams)
+    {
+        return (string)ClassUtils::forceInstance($transformationParams, Transformation::class);
     }
 
     /**
@@ -204,7 +228,7 @@ class ApiUtils
      */
     public static function serializeResponsiveBreakpoints($breakpoints)
     {
-        if (!$breakpoints) {
+        if (! $breakpoints) {
             return null;
         }
         $breakpointsParams = [];
@@ -230,33 +254,33 @@ class ApiUtils
      */
     public static function serializeQueryParams($parameters = [])
     {
-        return ArrayUtils::safeImplodeAssoc(
+        return ArrayUtils::implodeAssoc(
             $parameters,
             self::QUERY_STRING_OUTER_DELIMITER,
-            self::QUERY_STRING_INNER_DELIMITER,
-            true
+            self::QUERY_STRING_INNER_DELIMITER
         );
     }
 
     /**
      * Signs parameters of the request.
      *
-     * @param array  $parameters Parameters to sign.
-     * @param string $secret     The API secret of the cloud.
+     * @param array  $parameters         Parameters to sign.
+     * @param string $secret             The API secret of the cloud.
+     * @param string $signatureAlgorithm Signature algorithm
      *
      * @return string The signature.
      *
      * @api
      */
-    public static function signParameters($parameters, $secret)
+    public static function signParameters($parameters, $secret, $signatureAlgorithm = Utils::ALGO_SHA1)
     {
-        $parameters = array_map('self::serializeSimpleApiParam', $parameters);
+        $parameters = array_map(self::class . '::serializeSimpleApiParam', $parameters);
 
         ksort($parameters);
 
         $signatureContent = self::serializeQueryParams($parameters);
 
-        return Utils::sign($signatureContent, $secret);
+        return Utils::sign($signatureContent, $secret, false, $signatureAlgorithm);
     }
 
     /**
@@ -269,7 +293,11 @@ class ApiUtils
      */
     public static function signRequest(&$parameters, $cloudConfig)
     {
-        $parameters['signature'] = self::signParameters($parameters, $cloudConfig->apiSecret);
+        $parameters['signature'] = self::signParameters(
+            $parameters,
+            $cloudConfig->apiSecret,
+            $cloudConfig->signatureAlgorithm
+        );
         $parameters['api_key']   = $cloudConfig->apiKey;
     }
 }

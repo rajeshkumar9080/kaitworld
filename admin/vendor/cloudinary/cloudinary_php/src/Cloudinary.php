@@ -11,6 +11,7 @@
 namespace Cloudinary;
 
 use Cloudinary\Api\Admin\AdminApi;
+use Cloudinary\Api\Search\SearchFoldersApi;
 use Cloudinary\Api\Search\SearchApi;
 use Cloudinary\Api\Upload\UploadApi;
 use Cloudinary\Asset\File;
@@ -33,7 +34,7 @@ class Cloudinary
      *
      * @var string VERSION
      */
-    const VERSION = '2.0.0';
+    const VERSION = '2.14.0';
 
     /**
      * Defines the Cloudinary cloud details and other global configuration options.
@@ -55,6 +56,8 @@ class Cloudinary
     public function __construct($config = null)
     {
         $this->configuration = new Configuration($config);
+        $this->configuration->validate();
+
         $this->tagBuilder    = new TagBuilder($this->configuration);
     }
 
@@ -126,7 +129,10 @@ class Cloudinary
      */
     public function videoTag($publicId, $sources = null)
     {
-        return $this->createWithConfiguration($publicId, VideoTag::class, $sources);
+        $videoTag = ClassUtils::forceInstance($publicId, VideoTag::class, null, $sources, $this->configuration);
+        $videoTag->importConfiguration($this->configuration);
+
+        return $videoTag;
     }
 
     /**
@@ -160,6 +166,16 @@ class Cloudinary
     }
 
     /**
+     * Creates a new SearchFoldersApi instance using the current configuration instance.
+     *
+     * @return SearchFoldersApi
+     */
+    public function searchFoldersApi()
+    {
+        return new SearchFoldersApi($this->configuration);
+    }
+
+    /**
      * Creates a new object and imports current instance configuration.
      *
      * @param mixed  $publicId  The public Id or the object.
@@ -172,7 +188,8 @@ class Cloudinary
      */
     protected function createWithConfiguration($publicId, $className, ...$args)
     {
-        $instance = ClassUtils::forceInstance($publicId, $className, null, ...$args);
+        $instance = ClassUtils::forceInstance($publicId, $className, null, $this->configuration, ...$args);
+        // this covers the case when an instance of the asset is provided and the line above is a no op.
         $instance->importConfiguration($this->configuration);
 
         return $instance;

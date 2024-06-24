@@ -11,10 +11,9 @@
 namespace Cloudinary;
 
 use Cloudinary\Api\Exception\GeneralError;
+use GuzzleHttp\Psr7;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
-
-use function GuzzleHttp\Psr7\stream_for;
 
 /**
  * Class Utils
@@ -54,6 +53,10 @@ class FileUtils
      */
     public static function splitPathFilenameExtension($fullPath)
     {
+        if (empty($fullPath)) {
+            return ['', '', ''];
+        }
+
         $path = self::dirName($fullPath);
 
         $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
@@ -121,7 +124,7 @@ class FileUtils
      *
      * @param string $filename       The file to open.
      * @param string $mode           Access mode.
-     * @param null   $useIncludePath Set to true if you want to search for the file in the include_path
+     * @param bool   $useIncludePath Set to true if you want to search for the file in the include_path.
      *
      * @return resource
      *
@@ -129,8 +132,12 @@ class FileUtils
      *
      * @see fopen
      */
-    public static function safeFileOpen($filename, $mode, $useIncludePath = null)
+    public static function safeFileOpen($filename, $mode, $useIncludePath = false)
     {
+        if (empty($filename)) {
+            throw new GeneralError('Path cannot be empty');
+        }
+
         $fp = @fopen($filename, $mode, $useIncludePath);
 
         if (! $fp) {
@@ -160,11 +167,11 @@ class FileUtils
         }
 
         if (self::isBase64Data($file)) {
-            $file = stream_for($file);
+            $file = Psr7\Utils::streamFor($file);
         } elseif (is_string($file)) {
             $file = self::safeFileOpen($file, 'rb');
         }
 
-        return stream_for($file);
+        return Psr7\Utils::streamFor($file);
     }
 }

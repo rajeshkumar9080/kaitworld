@@ -32,6 +32,34 @@ trait CloudConfigTrait
     }
 
     /**
+     * Sets the OAuth2.0 token.
+     *
+     * @param string $oauthToken Used instead of API key and API secret
+     *
+     * @return $this
+     *
+     * @api
+     */
+    public function oauthToken($oauthToken)
+    {
+        return $this->setCloudConfig(CloudConfig::OAUTH_TOKEN, $oauthToken);
+    }
+
+    /**
+     * Sets the signature algorithm.
+     *
+     * @param string $signatureAlgorithm The algorithm to use. (Can be SHA1 or SHA256).
+     *
+     * @return $this
+     *
+     * @api
+     */
+    public function signatureAlgorithm($signatureAlgorithm)
+    {
+        return $this->setCloudConfig(CloudConfig::SIGNATURE_ALGORITHM, $signatureAlgorithm);
+    }
+
+    /**
      * Sets the Cloud configuration key with the specified value.
      *
      * @param string $configKey   The configuration key.

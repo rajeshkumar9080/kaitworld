@@ -12,7 +12,9 @@ namespace Cloudinary\Test\Integration\Upload;
 
 use Cloudinary\Api\Exception\ApiError;
 use Cloudinary\Api\Exception\GeneralError;
+use Cloudinary\Api\Metadata\SetMetadataField;
 use Cloudinary\Api\Metadata\StringMetadataField;
+use Cloudinary\ArrayUtils;
 use Cloudinary\Asset\AssetType;
 use Cloudinary\Asset\DeliveryType;
 use Cloudinary\FileUtils;
@@ -21,10 +23,9 @@ use Cloudinary\Test\Unit\Asset\AssetTestCase;
 use Cloudinary\Transformation\Format;
 use Cloudinary\Transformation\Resize;
 use GuzzleHttp\Psr7\Uri;
-use PHPUnit_Framework_Constraint_IsType as IsType;
+use PHPUnit\Framework\Constraint\IsType;
 use Psr\Http\Message\StreamInterface;
-
-use function GuzzleHttp\Psr7\stream_for;
+use GuzzleHttp\Psr7;
 
 /**
  * Class UploadApiTest
@@ -50,6 +51,12 @@ final class UploadApiTest extends IntegrationTestCase
 
     private static $METADATA_FIELD_UNIQUE_EXTERNAL_ID;
     private static $METADATA_FIELD_VALUE;
+
+    private static $METADATA_FIELD_EXTERNAL_ID_SET;
+    private static $DATASOURCE_MULTIPLE;
+    private static $DATASOURCE_ENTRY_EXTERNAL_ID;
+    private static $DATASOURCE_ENTRY_EXTERNAL_ID2;
+
     private static $METADATA_FIELDS;
 
     private static $INCOMING_TRANSFORMATION_ARR;
@@ -63,14 +70,41 @@ final class UploadApiTest extends IntegrationTestCase
         self::$REMOTE_TEST_IMAGE_ID = 'upload_remote_' . self::$UNIQUE_TEST_ID;
 
         self::$METADATA_FIELD_UNIQUE_EXTERNAL_ID = 'metadata_field_external_id_' . self::$UNIQUE_TEST_ID;
-        self::$METADATA_FIELD_VALUE = 'metadata_field_value_' . self::$UNIQUE_TEST_ID;
+        self::$METADATA_FIELD_VALUE              = 'metadata_field_value_' . self::$UNIQUE_TEST_ID;
+
+        self::$METADATA_FIELD_EXTERNAL_ID_SET = 'metadata_external_id_uploader_set_' . self::$UNIQUE_TEST_ID;
+        self::$DATASOURCE_ENTRY_EXTERNAL_ID   = 'metadata_datasource_entry_external_id' . self::$UNIQUE_TEST_ID;
+        self::$DATASOURCE_ENTRY_EXTERNAL_ID2  = 'metadata_datasource_entry_external_id2' . self::$UNIQUE_TEST_ID;
+
+        self::$DATASOURCE_MULTIPLE = [
+            [
+                'value'       => 'v2',
+                'external_id' => self::$DATASOURCE_ENTRY_EXTERNAL_ID,
+            ],
+            [
+                'value'       => 'v3',
+                'external_id' => self::$DATASOURCE_ENTRY_EXTERNAL_ID2,
+            ],
+            [
+                'value' => 'v4',
+            ],
+        ];
+
         self::$METADATA_FIELDS = [
-            self::$METADATA_FIELD_UNIQUE_EXTERNAL_ID => self::$METADATA_FIELD_VALUE
+            self::$METADATA_FIELD_UNIQUE_EXTERNAL_ID => self::$METADATA_FIELD_VALUE,
+            self::$METADATA_FIELD_EXTERNAL_ID_SET    => [
+                self::$DATASOURCE_ENTRY_EXTERNAL_ID,
+                self::$DATASOURCE_ENTRY_EXTERNAL_ID2,
+            ],
         ];
 
         $stringMetadataField = new StringMetadataField(self::$METADATA_FIELD_UNIQUE_EXTERNAL_ID);
         $stringMetadataField->setExternalId(self::$METADATA_FIELD_UNIQUE_EXTERNAL_ID);
         self::$adminApi->addMetadataField($stringMetadataField);
+
+        $setMetadataField = new SetMetadataField(self::$METADATA_FIELD_EXTERNAL_ID_SET, self::$DATASOURCE_MULTIPLE);
+        $setMetadataField->setExternalId(self::$METADATA_FIELD_EXTERNAL_ID_SET);
+        self::$adminApi->addMetadataField($setMetadataField);
 
         $uploadPreset = self::$adminApi->createUploadPreset(
             [
@@ -92,6 +126,7 @@ final class UploadApiTest extends IntegrationTestCase
         self::cleanupTestAssets();
         self::cleanupUploadPreset(self::$UNIQUE_UPLOAD_PRESET);
         self::cleanupMetadataField(self::$METADATA_FIELD_UNIQUE_EXTERNAL_ID);
+        self::cleanupMetadataField(self::$METADATA_FIELD_EXTERNAL_ID_SET);
 
         parent::tearDownAfterClass();
     }
@@ -197,7 +232,7 @@ final class UploadApiTest extends IntegrationTestCase
      */
     public function testUploadGSUrl()
     {
-        $this->markTestSkipped('Check GS authorization issue');
+        self::markTestSkipped('Check GS authorization issue');
 
         $gsImage = 'gs://gcp-public-data-landsat/LC08/PRE/044/034/LC80440342016259LGN00/LC80440342016259LGN00_BQA.TIF';
         $result  = self::$uploadApi->upload($gsImage, ['tags' => self::$ASSET_TAGS]);
@@ -262,7 +297,7 @@ final class UploadApiTest extends IntegrationTestCase
                 "\xFC\x00\x00\x00\x00\x00\x00\x00\x00fff\xFC\x00\x00\x00\x00\x00\x00\x00\x00\xC4\xF5(\xFF\x00\x00\x00" .
                 "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
 
-        $largeStream = stream_for($head . str_repeat("\xFF", self::LARGE_TEST_IMAGE_SIZE - strlen($head)));
+        $largeStream = Psr7\Utils::streamFor($head . str_repeat("\xFF", self::LARGE_TEST_IMAGE_SIZE - strlen($head)));
         $largeStream->rewind();
 
         return $largeStream;
@@ -289,12 +324,12 @@ final class UploadApiTest extends IntegrationTestCase
      */
     public function testUploadIncomingTransformation()
     {
-        $result = self::uploadTestAssetImage(['transformation' => self::$INCOMING_TRANSFORMATION_ARR]);
+        $result = self::uploadTestAssetImage(self::$INCOMING_TRANSFORMATION_ARR);
 
         self::assertValidAsset(
             $result,
             [
-                'width'  => self::INCOMING_TRANSFORMATION_WIDTH,
+                'width' => self::INCOMING_TRANSFORMATION_WIDTH,
             ]
         );
 
@@ -303,7 +338,22 @@ final class UploadApiTest extends IntegrationTestCase
         self::assertValidAsset(
             $result,
             [
-                'width'  => self::INCOMING_TRANSFORMATION_WIDTH,
+                'width' => self::INCOMING_TRANSFORMATION_WIDTH,
+            ]
+        );
+    }
+    /**
+     * @throws ApiError
+     */
+    public function testUploadIncomingTransformationWithFormat()
+    {
+        $result = self::uploadTestAssetImage(array_merge(self::$INCOMING_TRANSFORMATION_ARR, ['format'=> 'gif']));
+
+        self::assertValidAsset(
+            $result,
+            [
+                'width' => self::INCOMING_TRANSFORMATION_WIDTH,
+                'format' => 'gif'
             ]
         );
     }
@@ -315,7 +365,7 @@ final class UploadApiTest extends IntegrationTestCase
      */
     public function testAddTheMetadataFieldImagesByPublicID()
     {
-        $this->markTestIncomplete('This functionality is not implemented yet');
+        self::markTestIncomplete('This functionality is not implemented yet');
     }
 
     /**
@@ -331,6 +381,18 @@ final class UploadApiTest extends IntegrationTestCase
     }
 
     /**
+     * Get the image metadata of an uploaded image.
+     *
+     * @throws ApiError
+     */
+    public function testMediaMetadata()
+    {
+        $result = self::uploadTestAssetImage(['media_metadata' => true], self::TEST_IMAGE_PATH);
+
+        self::assertArrayHasKey('image_metadata', $result);
+    }
+
+    /**
      * Upload a resource with a metadata.
      *
      * @throws ApiError
@@ -340,14 +402,14 @@ final class UploadApiTest extends IntegrationTestCase
         $asset = self::$uploadApi->upload(
             self::TEST_IMAGE_PATH,
             [
-                'tags' => self::$ASSET_TAGS,
-                'metadata' => self::$METADATA_FIELDS
+                'tags'     => self::$ASSET_TAGS,
+                'metadata' => self::$METADATA_FIELDS,
             ]
         );
 
         self::assertEquals(
-            self::$METADATA_FIELD_VALUE,
-            $asset['metadata'][self::$METADATA_FIELD_UNIQUE_EXTERNAL_ID]
+            self::$METADATA_FIELDS,
+            ArrayUtils::whitelist($asset['metadata'], array_keys(self::$METADATA_FIELDS))
         );
     }
 
@@ -363,15 +425,15 @@ final class UploadApiTest extends IntegrationTestCase
         $result = self::$uploadApi->explicit(
             $asset['public_id'],
             [
-                'type' => DeliveryType::UPLOAD,
+                'type'          => DeliveryType::UPLOAD,
                 'resource_type' => AssetType::IMAGE,
-                'metadata' => self::$METADATA_FIELDS
+                'metadata'      => self::$METADATA_FIELDS,
             ]
         );
 
         self::assertEquals(
-            self::$METADATA_FIELDS[self::$METADATA_FIELD_UNIQUE_EXTERNAL_ID],
-            $result['metadata'][self::$METADATA_FIELD_UNIQUE_EXTERNAL_ID]
+            self::$METADATA_FIELDS,
+            ArrayUtils::whitelist($result['metadata'], array_keys(self::$METADATA_FIELDS))
         );
     }
 
@@ -387,7 +449,7 @@ final class UploadApiTest extends IntegrationTestCase
         $result = self::$uploadApi->updateMetadata(
             self::$METADATA_FIELDS,
             [
-                $asset['public_id']
+                $asset['public_id'],
             ]
         );
 
@@ -409,7 +471,7 @@ final class UploadApiTest extends IntegrationTestCase
             self::$METADATA_FIELDS,
             [
                 $resource1['public_id'],
-                $resource2['public_id']
+                $resource2['public_id'],
             ]
         );
 
@@ -422,22 +484,30 @@ final class UploadApiTest extends IntegrationTestCase
      * Add eval parameter to an uploaded asset
      *
      * @throws ApiError
+     * @throws \Exception
      */
     public function testEvalUploadParameter()
     {
-        $result = self::$uploadApi->upload(
-            self::TEST_IMAGE_PATH,
-            ['eval' => self::TEST_EVAL_STR, 'tags' => self::$ASSET_TAGS]
-        );
+        self::retryAssertionIfThrows(
+            function () {
+                $result = self::$uploadApi->upload(
+                    self::TEST_IMAGE_PATH,
+                    ['eval' => self::TEST_EVAL_STR, 'tags' => self::$ASSET_TAGS]
+                );
 
-        self::assertValidAsset(
-            $result,
-            [
-                'context' => ['custom' => ['width' => self::TEST_IMAGE_WIDTH]],
-            ]
+                self::assertValidAsset(
+                    $result,
+                    [
+                        'context' => ['custom' => ['width' => self::TEST_IMAGE_WIDTH]],
+                    ]
+                );
+                self::assertIsArray($result['quality_analysis']);
+                self::assertIsNumeric($result['quality_analysis']['focus']);
+            },
+            3,
+            1,
+            'Unable to use eval upload parameter'
         );
-        self::assertInternalType(IsType::TYPE_ARRAY, $result['quality_analysis']);
-        self::assertInternalType(IsType::TYPE_NUMERIC, $result['quality_analysis']['focus']);
     }
 
     /**
@@ -454,19 +524,38 @@ final class UploadApiTest extends IntegrationTestCase
                     [
                         'create_derived' => true,
                         'transformation' => [
-                            'angle' => 90
+                            'angle' => 90,
                         ],
-                        'format' => Format::GIF
-                    ]
+                        'format'         => Format::GIF,
+                    ],
                 ],
-                'tags' => self::$ASSET_TAGS
+                'tags'                   => self::$ASSET_TAGS,
             ]
         );
 
         self::assertValidAsset($asset);
         self::assertArrayHasKey('responsive_breakpoints', $asset);
         self::assertEquals('a_90', $asset['responsive_breakpoints'][0]['transformation']);
-        self::assertRegExp('/\.gif$/', $asset['responsive_breakpoints'][0]['breakpoints'][0]['url']);
-        self::assertRegExp('/\.gif$/', $asset['responsive_breakpoints'][0]['breakpoints'][0]['secure_url']);
+        self::assertMatchesRegularExpression('/\.gif$/', $asset['responsive_breakpoints'][0]['breakpoints'][0]['url']);
+        self::assertMatchesRegularExpression('/\.gif$/', $asset['responsive_breakpoints'][0]['breakpoints'][0]['secure_url']);
+    }
+
+    /**
+     * Should successfully override original_filename.
+     *
+     * @throws ApiError
+     */
+    public function testFilenameOverride()
+    {
+        $asset = self::$uploadApi->upload(
+            'http://cloudinary.com/images/old_logo.png',
+            [
+                'filename_override' => 'overridden',
+                'tags' => self::$ASSET_TAGS
+            ]
+        );
+
+        self::assertValidAsset($asset);
+        self::assertEquals('overridden', $asset['original_filename']);
     }
 }

@@ -19,7 +19,6 @@ use Cloudinary\Configuration\Configuration;
 use Cloudinary\Configuration\UrlConfig;
 use Cloudinary\Test\Unit\UnitTestCase;
 use Exception;
-use Throwable;
 
 /**
  * Class AssetTestCase
@@ -40,10 +39,21 @@ abstract class AssetTestCase extends UnitTestCase
     const FILE_EXT  = 'bin';
     const FILE_NAME = self::ASSET_ID . '.' . self::FILE_EXT;
 
+    const DOCX_EXT  = 'docx';
+    const DOCX_NAME = self::ASSET_ID . '.' . self::DOCX_EXT;
+
+    const FD_PID_PREFIX      = 'fd_public_id_prefix';
+    const ASSET_DISPLAY_NAME = 'test';
+
+    const ASSET_FOLDER    = 'asset_folder';
     const FOLDER          = 'test_folder';
+    const NESTED_FOLDER   = 'folder/test';
     const IMAGE_IN_FOLDER = self::FOLDER . '/' . self::IMAGE_NAME;
 
-    const FETCH_IMAGE_URL = 'https://res.cloudinary.com/demo/image/upload/' . self::IMAGE_NAME;
+    const FETCH_IMAGE_URL            = 'https://res.cloudinary.com/demo/image/upload/' . self::IMAGE_NAME;
+    const FETCH_IMAGE_URL_WITH_QUERY = 'https://res.cloudinary.com/demo/image/upload/' . self::IMAGE_NAME . '?q=a';
+
+    const FETCH_VIDEO_URL = 'https://res.cloudinary.com/demo/video/upload/dog.mp4';
 
     const PROTOCOL_HTTP  = 'http';
     const PROTOCOL_HTTPS = 'https';
@@ -82,7 +92,7 @@ abstract class AssetTestCase extends UnitTestCase
         $actualUrl,
         $options = []
     ) {
-        $message    = ArrayUtils::get($options, 'message');
+        $message    = ArrayUtils::get($options, 'message', '');
         $protocol   = ArrayUtils::get($options, 'protocol', 'https');
         $hostname   = ArrayUtils::get($options, 'hostname', UrlConfig::DEFAULT_SHARED_HOST);
         $cloudName  = ArrayUtils::get($options, 'cloud_name', self::CLOUD_NAME);

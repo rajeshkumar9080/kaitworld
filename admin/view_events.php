@@ -162,7 +162,7 @@ include('db_config.php');
                         <div class="modal-body">                         
 							<div class="form-group">
                               <div class="col-md-12 mb-3">
-                              <label for="validationCustom03" class="form-label">Place</label>
+                              <label for="validationCustom03" class="form-label"></label>
 							   <textarea id="content_page"class="form-control editor" required name="place" type="text" ></textarea>
                                
                               </div>
@@ -247,6 +247,7 @@ include('db_config.php');
     <script src="https://cdn.datatables.net/buttons/1.5.1/js/buttons.print.min.js"></script>
     <script src="dist/js/pages/datatable/datatable-advanced.init.js"></script>
   </body>
+
   <?php
 									// session_start();
 									// error_reporting(0);
@@ -299,9 +300,13 @@ if ($_POST["delete"])
   <?php  
 if( isset($_POST['update'] ) ) { 
   $id=$_POST['id'];
- $place=$_POST['place'];
-  $event_image=$_POST['event_image'];
+  $place=mysqli_real_escape_string($con,$_POST['place']);
+  $event_image=mysqli_real_escape_string($con,$_POST['event_image']);
   $file_name = $_FILES["img_files"]["name"];
+
+//  $place=$_POST['place'];
+//   $event_image=$_POST['event_image'];
+//   $file_name = $_FILES["img_files"]["name"];
 
 	// Validate file upload
     if (!empty($file_name)) {
@@ -311,16 +316,16 @@ if( isset($_POST['update'] ) ) {
         $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
 
-        if (!in_array($image_mime, $valid_image_check)) {
-            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_achives.php";</script>';
-            exit();
-        }
+        // if (!in_array($image_mime, $valid_image_check)) {
+            // echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_achives.php";</script>';
+        //     exit();
+        //  }
 
         // Move uploaded file
-        if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-            echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_achives.php";</script>';
-            exit();
-        }
+         if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
+            // echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_achives.php";</script>';
+        //     exit();
+         }
 
         // Update database record
         unlink("assets/images/gallery/" . $event_image);

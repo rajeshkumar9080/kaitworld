@@ -24,8 +24,10 @@ final class AssetTest extends IntegrationTestCase
 {
     const EXTRA_INFO = ['colors' => true, 'exif' => true, 'faces' => true];
 
-    private static $UNIQUE_IMAGE_PUBLIC_ID;
-    private static $UNIQUE_DOCX_PUBLIC_ID;
+    const ASSET_IMAGE = 'asset_image';
+    const ASSET_VIDEO = 'asset_video';
+    const ASSET_DOCX  = 'asset_docx';
+
     private static $UNIQUE_CONTEXT;
     private static $UNIQUE_CONTEXT_KEY;
     private static $UNIQUE_CONTEXT_VALUE;
@@ -37,30 +39,37 @@ final class AssetTest extends IntegrationTestCase
     {
         parent::setUpBeforeClass();
 
-        self::$UNIQUE_IMAGE_PUBLIC_ID = 'asset_image_' . self::$UNIQUE_TEST_ID;
-        self::$UNIQUE_DOCX_PUBLIC_ID  = 'asset_docx_' . self::$UNIQUE_TEST_ID;
-        self::$UNIQUE_CONTEXT_KEY     = 'asset_context_key_' . self::$UNIQUE_TEST_ID;
-        self::$UNIQUE_CONTEXT_VALUE   = 'asset_context_value_' . self::$UNIQUE_TEST_ID;
-        self::$UNIQUE_CONTEXT         = [self::$UNIQUE_CONTEXT_KEY => self::$UNIQUE_CONTEXT_VALUE];
+        self::$UNIQUE_CONTEXT_KEY   = 'asset_context_key_' . self::$UNIQUE_TEST_ID;
+        self::$UNIQUE_CONTEXT_VALUE = 'asset_context_value_' . self::$UNIQUE_TEST_ID;
+        self::$UNIQUE_CONTEXT       = [self::$UNIQUE_CONTEXT_KEY => self::$UNIQUE_CONTEXT_VALUE];
 
-        self::uploadTestAssetImage(
+        self::createTestAssets(
             [
-                'public_id'         => self::$UNIQUE_IMAGE_PUBLIC_ID,
-                ModerationType::KEY => ModerationType::MANUAL,
-            ]
-        );
-
-        self::uploadTestAssetFile(
-            [
-                'public_id' => self::$UNIQUE_DOCX_PUBLIC_ID,
+                self::ASSET_IMAGE => [
+                    'options' => [
+                        ModerationType::KEY => ModerationType::MANUAL,
+                    ],
+                ],
+                self::ASSET_DOCX  => [
+                    'options' => [
+                        ModerationType::KEY => ModerationType::MANUAL,
+                        AssetType::KEY      => AssetType::RAW,
+                        'file'              => self::TEST_DOCX_PATH,
+                    ],
+                ],
+                self::ASSET_VIDEO  => [
+                    'options' => [
+                        AssetType::KEY      => AssetType::VIDEO,
+                        'file'              => self::TEST_VIDEO_PATH,
+                    ],
+                ],
             ]
         );
     }
 
     public static function tearDownAfterClass()
     {
-        self::cleanupTestAssets();
-        self::cleanupTestAssets(AssetType::RAW);
+        self::cleanupTestAssets([AssetType::IMAGE, AssetType::RAW]);
 
         parent::tearDownAfterClass();
     }
@@ -70,7 +79,7 @@ final class AssetTest extends IntegrationTestCase
      */
     public function testGetUploadedImageDetailsNoExtraInfo()
     {
-        $result = self::$adminApi->asset(self::$UNIQUE_IMAGE_PUBLIC_ID);
+        $result = self::$adminApi->asset(self::getTestAssetPublicId(self::ASSET_IMAGE));
 
         self::assertValidAsset($result);
         self::assertArrayNotHasKey('accessibility_analysis', $result);
@@ -85,9 +94,40 @@ final class AssetTest extends IntegrationTestCase
     public function testGetUploadedImageDetailsWithExtraInfo()
     {
         $result = self::$adminApi->asset(
-            self::$UNIQUE_IMAGE_PUBLIC_ID,
+            self::getTestAssetPublicId(self::ASSET_IMAGE),
             self::EXTRA_INFO
         );
+
+        self::assertValidAsset(
+            $result,
+            [
+                'colors' => [],
+                'exif'   => [],
+                'faces'  => [],
+            ]
+        );
+    }
+
+    /**
+     * Get uploaded image details by asset_id without extra info
+     */
+    public function testGetUploadedImageDetailsByAssetId()
+    {
+        $result = self::$adminApi->assetByAssetId(self::getTestAssetAssetId(self::ASSET_IMAGE));
+
+        self::assertValidAsset($result);
+        self::assertArrayNotHasKey('accessibility_analysis', $result);
+        self::assertArrayNotHasKey('colors', $result);
+        self::assertArrayNotHasKey('exif', $result);
+        self::assertArrayNotHasKey('faces', $result);
+    }
+
+    /**
+     * Get uploaded image details by asset_id including faces, colors and Exif info
+     */
+    public function testGetUploadedImageDetailsByAssetIdWithExtraInfo()
+    {
+        $result = self::$adminApi->assetByAssetId(self::getTestAssetAssetId(self::ASSET_IMAGE), self::EXTRA_INFO);
 
         self::assertValidAsset(
             $result,
@@ -104,7 +144,12 @@ final class AssetTest extends IntegrationTestCase
      */
     public function testGetUploadedImageAccessibilityAnalysis()
     {
-        $result = self::$adminApi->asset(self::$UNIQUE_IMAGE_PUBLIC_ID, ['accessibility_analysis' => true]);
+        $result = self::$adminApi->asset(
+            self::getTestAssetPublicId(self::ASSET_IMAGE),
+            [
+                'accessibility_analysis' => true,
+            ]
+        );
 
         self::assertArrayHasKey('accessibility_analysis', $result);
     }
@@ -127,7 +172,7 @@ final class AssetTest extends IntegrationTestCase
     public function testGetUploadedRawFileDetails()
     {
         $result = self::$adminApi->asset(
-            self::$UNIQUE_DOCX_PUBLIC_ID . '.docx',
+            self::getTestAssetPublicId(self::ASSET_DOCX),
             [
                 AssetType::KEY => AssetType::RAW,
             ]
@@ -144,12 +189,35 @@ final class AssetTest extends IntegrationTestCase
     }
 
     /**
+     * Get uploaded video file details
+     */
+    public function testGetUploadedVideoFileMediaMetadata()
+    {
+        $result = self::$adminApi->asset(
+            self::getTestAssetPublicId(self::ASSET_VIDEO),
+            [
+                AssetType::KEY   => AssetType::VIDEO,
+                'media_metadata' => true,
+            ]
+        );
+
+        self::assertValidAsset(
+            $result,
+            [
+                DeliveryType::KEY => DeliveryType::UPLOAD,
+                AssetType::KEY    => AssetType::VIDEO,
+            ]
+        );
+        self::assertArrayHasKey('video_metadata', $result);
+    }
+
+    /**
      * Update one or more of the attributes associated with a specified asset
      */
     public function testUpdateImageAttributes()
     {
         $result = self::$adminApi->update(
-            self::$UNIQUE_IMAGE_PUBLIC_ID,
+            self::getTestAssetPublicId(self::ASSET_IMAGE),
             [
                 ModerationStatus::KEY => ModerationStatus::APPROVED,
                 'context'             => self::$UNIQUE_CONTEXT,
@@ -160,7 +228,9 @@ final class AssetTest extends IntegrationTestCase
         self::assertEquals(ModerationStatus::APPROVED, $result['moderation'][0]['status']);
         self::assertEquals(self::$UNIQUE_CONTEXT, $result['context']['custom']);
 
-        $result = self::$adminApi->asset(self::$UNIQUE_IMAGE_PUBLIC_ID);
+        $result = self::$adminApi->asset(
+            self::getTestAssetPublicId(self::ASSET_IMAGE)
+        );
 
         self::assertValidAsset($result);
         self::assertEquals(ModerationStatus::APPROVED, $result['moderation'][0]['status']);

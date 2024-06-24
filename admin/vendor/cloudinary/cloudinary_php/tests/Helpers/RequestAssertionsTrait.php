@@ -10,9 +10,13 @@
 
 namespace Cloudinary\Test\Helpers;
 
+use Cloudinary\Api\ApiClient;
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Configuration\Provisioning\ProvisioningAccountConfig;
+use Cloudinary\Configuration\Provisioning\ProvisioningConfiguration;
 use Psr\Http\Message\RequestInterface;
 
-use function GuzzleHttp\Psr7\parse_query;
+use GuzzleHttp\Psr7;
 
 /**
  * Trait RequestAssertionsTrait
@@ -22,6 +26,105 @@ use function GuzzleHttp\Psr7\parse_query;
 trait RequestAssertionsTrait
 {
     /**
+     * Assert the HTTP request method is GET.
+     *
+     * @param RequestInterface $request
+     * @param string           $message
+     */
+    protected static function assertRequestGet(RequestInterface $request, $message = 'HTTP method should be GET')
+    {
+        self::assertEquals('GET', $request->getMethod(), $message);
+    }
+
+    /**
+     * Assert the HTTP request method is POST.
+     *
+     * @param RequestInterface $request
+     * @param string           $message
+     */
+    protected static function assertRequestPost(RequestInterface $request, $message = 'HTTP method should be POST')
+    {
+        self::assertEquals('POST', $request->getMethod(), $message);
+    }
+
+    /**
+     * Assert the HTTP request method is DELETE.
+     *
+     * @param RequestInterface $request
+     * @param string           $message
+     */
+    protected static function assertRequestDelete(RequestInterface $request, $message = 'HTTP method should be DELETE')
+    {
+        self::assertEquals('DELETE', $request->getMethod(), $message);
+    }
+
+    /**
+     * Assert the HTTP request method is PUT.
+     *
+     * @param RequestInterface $request
+     * @param string           $message
+     */
+    protected static function assertRequestPut(RequestInterface $request, $message = 'HTTP method should be PUT')
+    {
+        self::assertEquals('PUT', $request->getMethod(), $message);
+    }
+
+    /**
+     * Asserts that a request contains the expected fields and values.
+     *
+     * @param RequestInterface $request
+     * @param array|null       $fields
+     * @param string           $message
+     */
+    protected static function assertRequestFields(RequestInterface $request, $fields = null, $message = '')
+    {
+        self::assertEquals(
+            json_decode($request->getBody()->getContents(), true),
+            $fields,
+            $message
+        );
+    }
+
+    /**
+     * Assert that a request was made to the correct url.
+     *
+     * @param RequestInterface $request
+     * @param string           $path
+     * @param string           $message
+     */
+    protected static function assertRequestUrl(RequestInterface $request, $path, $message = '', $config = null)
+    {
+        if ($config == null) {
+            $config = Configuration::instance();
+        }
+
+        self::assertEquals(
+            '/' . ApiClient::apiVersion($config->api->apiVersion) . '/' . $config->cloud->cloudName . $path,
+            $request->getUri()->getPath(),
+            $message
+        );
+    }
+
+    /**
+     * Assert that a request was made to the correct url.
+     *
+     * @param RequestInterface $request
+     * @param string           $path
+     * @param string           $message
+     */
+    protected static function assertAccountRequestUrl(RequestInterface $request, $path, $message = '')
+    {
+        $config = ProvisioningConfiguration::instance();
+
+        self::assertEquals(
+            '/' . ApiClient::apiVersion() . '/' . 'provisioning/accounts/' . $config->provisioningAccount->accountId
+            . $path,
+            $request->getUri()->getPath(),
+            $message
+        );
+    }
+
+    /**
      * Asserts that a request's query string contains the expected fields and values.
      *
      * @param RequestInterface $request The request object
@@ -30,9 +133,9 @@ trait RequestAssertionsTrait
      */
     protected static function assertRequestQueryStringSubset(RequestInterface $request, $fields = null, $message = '')
     {
-        self::assertArraySubset(
+        self::assertSubset(
             $fields,
-            parse_query($request->getUri()->getQuery()),
+            Psr7\Query::parse($request->getUri()->getQuery()),
             $message ?: 'The expected fields and values were not found in the request query string'
         );
     }
@@ -46,95 +149,42 @@ trait RequestAssertionsTrait
      */
     protected static function assertRequestBodySubset(RequestInterface $request, $fields = null, $message = '')
     {
-        self::assertArraySubset(
+        self::assertSubset(
             $fields,
-            parse_query($request->getBody()->getContents()),
+            Psr7\Query::parse($request->getBody()->getContents()),
             $message ?: 'The expected fields and values were not found in the request body'
         );
     }
 
     /**
-     * Asserts that a request contains the expected fields and values in multipart request headers.
+     * Asserts that a request contains the expected fields and values in json format.
      *
-     * @param RequestInterface $request The request object
-     * @param array|null       $fields  An array of keys and values to look for in the the request
+     * @param RequestInterface $request
+     * @param array|null       $fields
      * @param string           $message
      */
-    protected static function assertMultipartRequestHeadersSubset(
-        RequestInterface $request,
-        $fields = null,
-        $message = ''
-    ) {
-        self::assertArraySubset(
+    protected static function assertRequestJsonBodySubset(RequestInterface $request, $fields = null, $message = '')
+    {
+        self::assertSubset(
             $fields,
-            self::getMultipartRequestParts($request),
-            $message ?: 'The expected fields and values were not found in the multipart\'s request headers'
+            json_decode($request->getBody()->getContents(), true),
+            $message ?: 'The expected fields and values were not found in the request body'
         );
     }
 
     /**
-     * Tests if a given request contains multipart form data.
+     * Asserts that a request contains the expected fields and values in its header.
      *
-     * @param RequestInterface $request The request object
-     *
-     * @return bool
+     * @param RequestInterface $request The request object.
+     * @param array|null       $fields  An array of keys and values to look for in the the request.
+     * @param string           $message
      */
-    private static function requestContainsMultipartFormData(RequestInterface $request)
+    protected static function assertRequestHeaderSubset(RequestInterface $request, $fields = null, $message = '')
     {
-        foreach ($request->getHeader('Content-Type') as $contentType) {
-            if (preg_match('/^multipart\/form-data;\s*boundary=/i', $contentType)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns a multipart request's individual parts.
-     *
-     * @param RequestInterface $request The request object
-     *
-     * @return array|null
-     */
-    private static function getMultipartRequestParts(RequestInterface $request)
-    {
-        $parts = [];
-
-        if (!self::requestContainsMultipartFormData($request)) {
-            return null;
-        }
-        $blocks = explode('--' . self::getRequestBoundary($request), $request->getBody()->getContents());
-
-        foreach ($blocks as $block) {
-            preg_match('/name=\"([^\"]*)\"/s', $block, $matches);
-            if (!empty($matches) && !empty($matches[1])) {
-                $valueMatches       = array_filter(preg_split("/[\r\n]+/", $block));
-                $parts[$matches[1]] = end($valueMatches);
-            }
-        }
-
-        return $parts;
-    }
-
-    /**
-     * Returns the boundary used in a multipart/form-data request
-     *
-     * @param RequestInterface $request
-     *
-     * @return string|null
-     */
-    private static function getRequestBoundary(RequestInterface $request)
-    {
-        if (!self::requestContainsMultipartFormData($request)) {
-            return null;
-        }
-
-        foreach ($request->getHeader('Content-Type') as $contentType) {
-            preg_match('/boundary=(.*)$/', $contentType, $matches);
-            if (!empty($matches[1])) {
-                return $matches[1];
-            }
-        }
+        self::assertSubset(
+            $fields,
+            $request->getHeaders(),
+            $message ?: 'The expected fields and values were not found in the request header'
+        );
     }
 }

@@ -12,7 +12,7 @@ namespace Cloudinary\Test\Integration\Admin;
 
 use Cloudinary\Api\Exception\ApiError;
 use Cloudinary\Test\Integration\IntegrationTestCase;
-use PHPUnit_Framework_Constraint_IsType as IsType;
+use PHPUnit\Framework\Constraint\IsType;
 
 /**
  * Class TagsTest
@@ -29,10 +29,16 @@ final class TagsTest extends IntegrationTestCase
     {
         parent::setUpBeforeClass();
 
-        self::$PREFIX_TAG = 'tags_prefix_tag_' . self::$UNIQUE_TEST_TAG;
+        self::$PREFIX_TAG      = 'tags_prefix_tag_' . self::$UNIQUE_TEST_TAG;
         self::$TAG_WITH_PREFIX = self::$PREFIX_TAG . self::$UNIQUE_TEST_TAG;
 
-        self::uploadTestAssetImage(['tags' => [self::$TAG_WITH_PREFIX]]);
+        self::createTestAssets(
+            [
+                [
+                    'options' => ['tags' => [self::$TAG_WITH_PREFIX]],
+                ],
+            ]
+        );
     }
 
     public static function tearDownAfterClass()
@@ -45,7 +51,7 @@ final class TagsTest extends IntegrationTestCase
     /**
      * List tags of images
      *
-     * @throws \Cloudinary\Api\Exception\ApiError
+     * @throws ApiError
      */
     public function testListTagsOfImages()
     {
@@ -53,7 +59,7 @@ final class TagsTest extends IntegrationTestCase
 
         self::assertObjectStructure($result, ['tags' => IsType::TYPE_ARRAY]);
         self::assertCount(2, $result['tags']);
-        self::assertInternalType(IsType::TYPE_STRING, $result['tags'][0]);
+        self::assertIsString($result['tags'][0]);
     }
 
     /**

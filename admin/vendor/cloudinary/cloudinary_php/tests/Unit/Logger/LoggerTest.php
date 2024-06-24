@@ -1,9 +1,18 @@
 <?php
+/**
+ * This file is part of the Cloudinary PHP package.
+ *
+ * (c) Cloudinary
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cloudinary\Test\Unit\Logger;
 
 use Cloudinary\Test\Unit\TestHelpers\TestLogger;
 use Cloudinary\Test\Unit\UnitTestCase;
+use Exception;
 use Monolog\Handler\ErrorLogHandler;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
@@ -62,8 +71,8 @@ final class LoggerTest extends UnitTestCase
                         'level' => 'ERROR'
                     ]
                 ],
-                'handlersCount' => 3,
-                'handlersContainsInstances' => [
+                'expectedCount' => 3,
+                'expectContainClasses' => [
                     ErrorLogHandler::class,
                     StreamHandler::class
                 ],
@@ -74,8 +83,8 @@ final class LoggerTest extends UnitTestCase
                         'level' => 'ERROR'
                     ]
                 ],
-                'handlersCount' => 1,
-                'handlersContainsInstances' => [
+                'expectedCount' => 1,
+                'expectContainClasses' => [
                     ErrorLogHandler::class,
                 ],
             ],
@@ -83,8 +92,8 @@ final class LoggerTest extends UnitTestCase
                 'config' => [
                     'error_log' => true,
                 ],
-                'handlersCount' => 1,
-                'handlersContainsInstances' => [
+                'expectedCount' => 1,
+                'expectContainClasses' => [
                     ErrorLogHandler::class,
                 ],
             ],
@@ -92,29 +101,29 @@ final class LoggerTest extends UnitTestCase
                 'config' => [
                     'error_log' => false,
                 ],
-                'handlersCount' => 1,
-                'handlersContainsInstances' => [
+                'expectedCount' => 1,
+                'expectContainClasses' => [
                     NullHandler::class,
                 ],
             ],
             [
                 'config' => [],
-                'handlersCount' => 1,
-                'handlersContainsInstances' => [
+                'expectedCount' => 1,
+                'expectContainClasses' => [
                     ErrorLogHandler::class,
                 ],
             ],
             [
                 'config' => ['error_log' => []],
-                'handlersCount' => 1,
-                'handlersContainsInstances' => [
+                'expectedCount' => 1,
+                'expectContainClasses' => [
                     ErrorLogHandler::class,
                 ],
             ],
             [
                 'config' => ['enabled' => false,],
-                'handlersCount' => 0,
-                'handlersContainsInstances' => [],
+                'expectedCount' => 0,
+                'expectContainClasses' => [],
             ],
 
         ];
@@ -150,7 +159,7 @@ final class LoggerTest extends UnitTestCase
 
         try {
             $logger->generateLog();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $exceptionsCaught++;
         }
 
@@ -160,7 +169,7 @@ final class LoggerTest extends UnitTestCase
 
         try {
             $logger->generateLog();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $exceptionsCaught++;
         }
 

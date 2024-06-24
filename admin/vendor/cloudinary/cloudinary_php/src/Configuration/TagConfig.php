@@ -20,26 +20,32 @@ use Cloudinary\Transformation\Format;
  * @property string $quotesType        Sets the type of the quotes to use (single or double). Default:
  *           BaseTag::DOUBLE_QUOTES.
  * @property string $contentDelimiter  The delimiter between content items.
+ * @property float  $relativeWidth     The percentage of the screen that the image occupies.
  *
  * @api
  */
 class TagConfig extends BaseConfigSection
 {
+    use TagConfigTrait;
+
     const CONFIG_NAME = 'tag';
 
     const DEFAULT_VIDEO_POSTER_FORMAT = Format::JPG;
     const DEFAULT_QUOTES_TYPE         = BaseTag::DOUBLE_QUOTES;
     const DEFAULT_CONTENT_DELIMITER   = "\n";
+    const DEFAULT_RELATIVE_WIDTH      = 1.0;
 
     // Supported parameters
     const RESPONSIVE             = 'responsive';
     const RESPONSIVE_CLASS       = 'responsive_class';
     const RESPONSIVE_PLACEHOLDER = 'responsive_placeholder';
     const SIZES                  = 'sizes';
+    const RELATIVE_WIDTH         = 'relative_width';
     const HIDPI                  = 'hidpi';
     const CLIENT_HINTS           = 'client_hints';
     const UNSIGNED_UPLOAD        = 'unsigned_upload';
     const VIDEO_POSTER_FORMAT    = 'video_poster_format';
+    const USE_FETCH_FORMAT       = 'use_fetch_format';
     const QUOTES_TYPE            = 'quotes_type';
     const VOID_CLOSING_SLASH     = 'void_closing_slash';
     const SORT_ATTRIBUTES        = 'sort_attributes';
@@ -70,9 +76,20 @@ class TagConfig extends BaseConfigSection
     /**
      * Whether to automatically generate "sizes" attribute if not provided.
      *
-     * @var bool $sizes
+     * @var bool|int|string $sizes
+     *
      */
     public $sizes;
+
+    /**
+     * The percentage of the screen that the image occupies.
+     *
+     * Used for responsive breakpoints optimization.
+     *
+     * @var float $relativeWidth Specify a percentage of the screen width (Range: 0.0 to 1.0)
+     *
+     */
+    protected $relativeWidth;
 
     /**
      * Whether to use hi dpi.
@@ -103,6 +120,13 @@ class TagConfig extends BaseConfigSection
      * @var string $videoPosterFormat
      */
     protected $videoPosterFormat;
+
+    /**
+     * Whether to use fetch format transformation ("f_") instead of file extension.
+     *
+     * @var string $useFetchFormat
+     */
+    public $useFetchFormat;
 
     /**
      * Sets the type of the quotes to use (single or double). Default: BaseTag::DOUBLE_QUOTES.
@@ -140,4 +164,19 @@ class TagConfig extends BaseConfigSection
      * @var string $contentDelimiter
      */
     protected $contentDelimiter;
+
+    /**
+     * Sets the Tag configuration key with the specified value.
+     *
+     * @param string $configKey   The configuration key.
+     * @param mixed  $configValue THe configuration value.
+     *
+     * @return $this
+     *
+     * @internal
+     */
+    public function setTagConfig($configKey, $configValue)
+    {
+        return $this->setConfig($configKey, $configValue);
+    }
 }

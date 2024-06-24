@@ -404,18 +404,18 @@ if (isset($_POST['update'])) {
         $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
 
-        if (!in_array($image_mime, $valid_image_check)) {
-            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_blog.php";</script>';
-            exit();
-        }
+        //  if (!in_array($image_mime, $valid_image_check)) {
+            // echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_blog.php";</script>';
+            // exit();
+        //  }
 
         // Move uploaded file
-        if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
+       if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
             echo '<script type="text/javascript">alert("Failed to upload '. $_FILES["img_files"]["name"] . '");window.location.href = "view_blog.php";</script>';
-            exit();
-        }
-
-        // Update database record
+            //  exit();
+         }
+      
+        // Update database records
         unlink("assets/images/gallery/" . $image);
         unlink("assets/images/gallery/thumb/" . $image);
     echo $sql ="UPDATE tbl_add_blog SET sl_no='$sl_no',user_title_1='$user_title_1',content_page_1='$content_page_1',image='$file_name' WHERE sl_no='$sl_no'";

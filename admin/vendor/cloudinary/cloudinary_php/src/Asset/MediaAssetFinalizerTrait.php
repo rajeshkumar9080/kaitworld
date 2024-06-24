@@ -11,6 +11,7 @@
 namespace Cloudinary\Asset;
 
 use Cloudinary\ArrayUtils;
+use Cloudinary\Exception\ConfigurationException;
 use Cloudinary\StringUtils;
 use Cloudinary\Transformation\CommonTransformation;
 use Cloudinary\Utils;
@@ -58,11 +59,16 @@ trait MediaAssetFinalizerTrait
      * Sign both transformation and asset parts of the URL.
      *
      * @return string
+     * @throws ConfigurationException
      */
     protected function finalizeSimpleSignature()
     {
         if (! $this->urlConfig->signUrl || $this->authToken->isEnabled()) {
             return '';
+        }
+
+        if (empty($this->cloud->apiSecret)) {
+            throw new ConfigurationException('Must supply apiSecret');
         }
 
         $toSign    = ArrayUtils::implodeUrl([$this->transformation, $this->asset->publicId()]);
@@ -71,7 +77,7 @@ trait MediaAssetFinalizerTrait
                 $toSign,
                 $this->cloud->apiSecret,
                 true,
-                $this->urlConfig->longUrlSignature ? Utils::ALGO_SHA256 : Utils::ALGO_SHA1
+                $this->getSignatureAlgorithm()
             )
         );
 

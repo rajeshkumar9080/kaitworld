@@ -12,8 +12,9 @@ namespace Cloudinary\Test\Integration\Admin;
 
 use Cloudinary\Api\ApiResponse;
 use Cloudinary\Api\Exception\ApiError;
+use Cloudinary\Api\Exception\NotFound;
 use Cloudinary\Test\Integration\IntegrationTestCase;
-use PHPUnit_Framework_Constraint_IsType as IsType;
+use PHPUnit\Framework\Constraint\IsType;
 
 /**
  * Class FoldersTest
@@ -31,7 +32,6 @@ final class FoldersTest extends IntegrationTestCase
     private static $SUB_FOLDER_DELETE_FULL_PATH;
     private static $SUB_FOLDER_SINGLE_FULL_PATH;
 
-
     /**
      * @throws ApiError
      */
@@ -39,18 +39,20 @@ final class FoldersTest extends IntegrationTestCase
     {
         parent::setUpBeforeClass();
 
-        self::$FOLDER_BASE_NAME = 'test_folder';
-        self::$FOLDER_NAME = self::$FOLDER_BASE_NAME . '_' . self::$UNIQUE_TEST_ID;
-        self::$FOLDER2_NAME = self::$FOLDER_BASE_NAME . '_2_' . self::$UNIQUE_TEST_ID;
-        self::$SUB_FOLDER_NAME = 'test_sub_folder_' . self::$UNIQUE_TEST_ID;
-        self::$SUB_FOLDER_CREATE_NAME = 'test_sub_folder_for_create_' . self::$UNIQUE_TEST_ID;
-        self::$SUB_FOLDER_DELETE_NAME = 'test_sub_folder_for_delete_' . self::$UNIQUE_TEST_ID;
-        self::$SUB_FOLDER_FULL_PATH = self::$FOLDER_NAME . '/' . self::$SUB_FOLDER_NAME;
+        self::$FOLDER_BASE_NAME            = 'test_folder';
+        self::$FOLDER_NAME                 = self::$FOLDER_BASE_NAME . '_' . self::$UNIQUE_TEST_ID;
+        self::$FOLDER2_NAME                = self::$FOLDER_BASE_NAME . '_2_' . self::$UNIQUE_TEST_ID;
+        self::$SUB_FOLDER_NAME             = 'test_sub_folder_' . self::$UNIQUE_TEST_ID;
+        self::$SUB_FOLDER_CREATE_NAME      = 'test_sub_folder_for_create_' . self::$UNIQUE_TEST_ID;
+        self::$SUB_FOLDER_DELETE_NAME      = 'test_sub_folder_for_delete_' . self::$UNIQUE_TEST_ID;
+        self::$SUB_FOLDER_FULL_PATH        = self::$FOLDER_NAME . '/' . self::$SUB_FOLDER_NAME;
         self::$SUB_FOLDER_CREATE_FULL_PATH = self::$FOLDER_NAME . '/' . self::$SUB_FOLDER_CREATE_NAME;
         self::$SUB_FOLDER_DELETE_FULL_PATH = self::$FOLDER_NAME . '/' . self::$SUB_FOLDER_DELETE_NAME;
         self::$SUB_FOLDER_SINGLE_FULL_PATH = self::$SUB_FOLDER_FULL_PATH . '/' . self::$SUB_FOLDER_NAME;
 
-        self::uploadTestAssetImage(['folder' => self::$SUB_FOLDER_FULL_PATH]);
+        self::createTestAssets(
+            ['options' => ['folder' => self::$SUB_FOLDER_FULL_PATH]]
+        );
         self::createTestFolder(self::$SUB_FOLDER_DELETE_FULL_PATH);
         self::createTestFolder(self::$SUB_FOLDER_SINGLE_FULL_PATH);
         self::createTestFolder(self::$FOLDER2_NAME);
@@ -60,12 +62,13 @@ final class FoldersTest extends IntegrationTestCase
     {
         self::cleanupTestAssets();
         self::cleanupFolder(self::$FOLDER_NAME);
+        self::cleanupFolder(self::$FOLDER2_NAME);
 
         parent::tearDownAfterClass();
     }
 
     /**
-     * Get a list of all root folders
+     * Get a list of all root folders.
      */
     public function testListRootFolders()
     {
@@ -86,7 +89,7 @@ final class FoldersTest extends IntegrationTestCase
     }
 
     /**
-     * Get sub folders for a given folder
+     * Get sub folders for a given folder.
      *
      * @throws ApiError
      */
@@ -115,7 +118,7 @@ final class FoldersTest extends IntegrationTestCase
     }
 
     /**
-     * Create folder
+     * Create folder.
      *
      * @throws ApiError
      */
@@ -137,34 +140,49 @@ final class FoldersTest extends IntegrationTestCase
     }
 
     /**
-     * create a folder and asserts that creation succeeded
+     * Create a folder and asserts that creation succeeded.
      *
      * @param string $path
      *
      * @return ApiResponse
      * @throws ApiError
+     * @throws \Exception
      */
     private static function createTestFolder($path)
     {
-        $result = self::$adminApi->createFolder($path);
+        $result      = self::$adminApi->createFolder($path);
         $pathAsArray = explode('/', $path);
-        $name = array_pop($pathAsArray);
+        $name        = array_pop($pathAsArray);
 
         self::assertValidFolder($result, ['path' => $path, 'name' => $name]);
         self::assertTrue($result['success']);
 
-        sleep(2);
+        self::retryAssertionIfThrows(
+            static function () use ($path, $name, $pathAsArray) {
+                $folders = self::$adminApi->subfolders(implode('/', $pathAsArray));
 
-        $folders = self::$adminApi->subfolders(implode('/', $pathAsArray));
-
-        self::assertArrayContainsArray(
-            $folders['folders'],
-            [
-                'name' => $name,
-                'path' => $path
-            ]
+                self::assertArrayContainsArray(
+                    $folders['folders'],
+                    [
+                        'name' => $name,
+                        'path' => $path,
+                    ]
+                );
+            }
         );
 
         return $result;
+    }
+
+    /**
+     * Should throw exception on non-existing folder.
+     *
+     * @throws ApiError
+     */
+    public function testFolderListingError()
+    {
+        $this->expectException(NotFound::class);
+
+        self::$adminApi->subfolders('non-existent-subfolder');
     }
 }

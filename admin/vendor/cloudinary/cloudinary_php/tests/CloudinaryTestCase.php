@@ -11,16 +11,18 @@
 namespace Cloudinary\Test;
 
 use Cloudinary\Cloudinary;
+use Cloudinary\StringUtils;
 use Exception;
 use Monolog\Handler\TestHandler;
+use Monolog\Level;
+use Monolog\Logger;
+use PHPUnit\Framework\Constraint\LogicalOr;
 use PHPUnit\Framework\TestCase;
-use PHPUnit_Framework_Constraint_IsType;
-use PHPUnit_Framework_Constraint_Or;
+use PHPUnit\Framework\Constraint\IsType;
 use ReflectionException;
 use ReflectionMethod;
 
-
-if (!defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
+if (! defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
     //PHP < 7.2 Define it as 0 so it does nothing
     define('JSON_INVALID_UTF8_SUBSTITUTE', 0);
 }
@@ -39,6 +41,7 @@ abstract class CloudinaryTestCase extends TestCase
     protected static $UNIQUE_TEST_TAG;
     protected static $ASSET_TAGS;
     protected static $UNIQUE_TEST_ID;
+    protected static $UNIQUE_TEST_ID2;
 
     protected static $skipAllTests = false;
     protected static $skipReason;
@@ -47,11 +50,12 @@ abstract class CloudinaryTestCase extends TestCase
     {
         parent::setUpBeforeClass();
 
-        self::$SUFFIX = getenv('TRAVIS_JOB_ID') ?: mt_rand(11111, 99999);
-        self::$TEST_TAG = 'cloudinary_php_v' . str_replace(['.', '-'], '_', Cloudinary::VERSION);
+        self::$SUFFIX          = getenv('TRAVIS_JOB_ID') ?: mt_rand(11111, 99999);
+        self::$TEST_TAG        = 'cloudinary_php_v' . str_replace(['.', '-'], '_', Cloudinary::VERSION);
         self::$UNIQUE_TEST_TAG = self::$TEST_TAG . '_' . self::$SUFFIX;
-        self::$UNIQUE_TEST_ID = self::$UNIQUE_TEST_TAG;
-        self::$ASSET_TAGS = [self::$TEST_TAG, self::$UNIQUE_TEST_TAG];
+        self::$UNIQUE_TEST_ID  = self::$UNIQUE_TEST_TAG;
+        self::$UNIQUE_TEST_ID2 = self::$UNIQUE_TEST_ID . '_2';
+        self::$ASSET_TAGS      = [self::$TEST_TAG, self::$UNIQUE_TEST_TAG];
     }
 
     /**
@@ -119,10 +123,10 @@ abstract class CloudinaryTestCase extends TestCase
 
         $constraints = [];
         foreach ($expected as $expectedType) {
-            $constraints[] = new PHPUnit_Framework_Constraint_IsType($expectedType);
+            $constraints[] = new IsType($expectedType);
         }
 
-        $orConstraint = new PHPUnit_Framework_Constraint_Or();
+        $orConstraint = new LogicalOr();
         $orConstraint->setConstraints($constraints);
 
         static::assertThat($actual, $orConstraint, $message);
@@ -141,17 +145,17 @@ abstract class CloudinaryTestCase extends TestCase
      *
      * @throws Exception
      */
-    public function retryAssertionIfThrows($f, $retries = 3, $delay = 3, $message = '')
+    public static function retryAssertionIfThrows($f, $retries = 3, $delay = 3, $message = '')
     {
-        for ($i = 1; $i <= $retries; $i++) {
+        for ($i = 0; $i < $retries; $i++) {
             try {
                 return $f();
             } catch (Exception $e) {
-                if ($i < $retries) {
-                    sleep($delay);
-                }
+                $message = $message ?: $e->getMessage(); // save error message, if not provided
+                $i === $retries - 1 ?: sleep($delay); // prevent sleep on the last loop
             }
         }
+
         self::fail($message);
 
         return $f();
@@ -175,6 +179,7 @@ abstract class CloudinaryTestCase extends TestCase
         } catch (ReflectionException $e) {
             // oops
             self::fail((string)$e);
+
             // we actually never get here
             return null;
         }
@@ -231,6 +236,11 @@ abstract class CloudinaryTestCase extends TestCase
         $testHandler = $logger->getTestHandler();
 
         self::assertInstanceOf(TestHandler::class, $testHandler);
+
+        if (3 === Logger::API) {
+            $level = is_string($level) ? Level::fromName($level) : Level::fromValue($level);
+        }
+
         self::assertTrue(
             $testHandler->hasRecordThatContains($message, $level),
             sprintf('Object %s did not log the message or logged it with a different level', get_class($obj))
@@ -247,15 +257,53 @@ abstract class CloudinaryTestCase extends TestCase
     protected static function assertObjectStructure($asset, array $keys, $message = '')
     {
         foreach ($keys as $key => $type) {
-            if (is_object($asset) && property_exists($asset, $key) && is_array($type)) {
-                self::assertOneOfInternalTypes($type, $asset->{$key}, $message);
-            } elseif (is_object($asset) && property_exists($asset, $key)) {
-                self::assertInternalType($type, $asset->{$key}, $message);
-            } elseif (is_array($type)) {
-                self::assertOneOfInternalTypes($type, $asset[$key], $message);
-            } else {
-                self::assertInternalType($type, $asset[$key], $message);
-            }
+            $value = is_object($asset) && property_exists($asset, $key) ? $asset->{$key} : $asset[$key];
+
+            self::assertOneOfInternalTypes((array) $type, $value, $message);
         }
+    }
+
+    /**
+     * Backward compatibility layer for deprecated assertArraySubset function.
+     *
+     * @param array  $subset
+     * @param array  $array
+     * @param string $message
+     */
+    public static function assertSubset(array $subset, array $array, $message = '')
+    {
+        foreach ($subset as $key => $value) {
+            self::assertArrayHasKey($key, $array);
+            self::assertEquals($value, $array[$key], $message);
+        }
+    }
+
+    /**
+     * Generate a data provider.
+     *
+     * @param        $array
+     * @param string $prefixValue
+     * @param string $suffixValue
+     * @param string $prefixMethod
+     * @param string $suffixMethod
+     *
+     * @return array[]
+     */
+    protected static function generateDataProvider(
+        $array,
+        $prefixValue = '',
+        $suffixValue = '',
+        $prefixMethod = '',
+        $suffixMethod = ''
+    ) {
+        return array_map(
+            static function ($value) use ($prefixValue, $suffixValue, $prefixMethod, $suffixMethod) {
+                return [
+                    'value' => $prefixValue . $value . $suffixValue,
+                    'method' => StringUtils::snakeCaseToCamelCase($prefixMethod . $value . $suffixMethod),
+                ];
+            },
+            $array
+        );
     }
 }

@@ -10,9 +10,6 @@
 
 namespace Cloudinary\Test\Unit\Asset;
 
-use Cloudinary\Asset\Analytics;
-use Cloudinary\Asset\Image;
-use Cloudinary\Configuration\Configuration;
 use Cloudinary\Test\Helpers\MockAnalytics;
 use OutOfRangeException;
 
@@ -51,20 +48,45 @@ final class AnalyticsTest extends AssetTestCase
     public function testSdkAnalyticsSignature()
     {
         self::assertEquals(
-            'AAJ1uAI',
+            'BAAJ1uAI',
             MockAnalytics::sdkAnalyticsSignature()
         );
     }
 
-    public function testAssetWithAnalytics()
+    public function testTechVersion()
     {
-        $config = new Configuration(Configuration::instance());
+        MockAnalytics::techVersion('12.0');
 
-        $config->url->analytics();
+        self::assertEquals(
+            'BAAJ1uAM',
+            MockAnalytics::sdkAnalyticsSignature()
+        );
 
-        self::assertContains(
-            '?'. Analytics::QUERY_KEY. '=',
-            (string)new Image(self::ASSET_ID, $config)
+        MockAnalytics::techVersion('12.0.0');
+
+        self::assertEquals(
+            'BAAJ1uAM',
+            MockAnalytics::sdkAnalyticsSignature()
+        );
+
+        MockAnalytics::techVersion('12');
+
+        self::assertEquals(
+            'BAAJ1uM',
+            MockAnalytics::sdkAnalyticsSignature()
+        );
+    }
+
+    public function testSdkAnalyticsSignatureWithIntegration()
+    {
+        MockAnalytics::product('B'); // Integrations
+        MockAnalytics::sdkCode('B'); // Laravel
+        MockAnalytics::sdkVersion('2.0.0'); // Laravel SDK version
+        MockAnalytics::techVersion('9.5'); // Laravel version
+
+        self::assertEquals(
+            'BBBAACH9',
+            MockAnalytics::sdkAnalyticsSignature()
         );
     }
 }

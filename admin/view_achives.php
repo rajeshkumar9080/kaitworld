@@ -327,7 +327,7 @@ if ($_POST["delete"])
     
     <?php  
 if( isset($_POST['update'] ) ) { 
-  $user=mysqli_real_escape_string($con,$_POST['id']);
+  $id=mysqli_real_escape_string($con,$_POST['id']);
  $user_id=mysqli_real_escape_string($con,$_POST['user_id']);
  $user_name=mysqli_real_escape_string($con,$_POST['user_name']);
   $user_image=mysqli_real_escape_string($con,$_POST['user_image']);
@@ -341,24 +341,24 @@ if( isset($_POST['update'] ) ) {
         $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
 
-        if (!in_array($image_mime, $valid_image_check)) {
-            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_achives.php";</script>';
-            exit();
-        }
+        // if (!in_array($image_mime, $valid_image_check)) {
+        //     echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_achives.php";</script>';
+        //     exit();
+        // }
 
         // Move uploaded file
-        if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-            echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_achives.php";</script>';
-            exit();
-        }
+        // if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
+        //     echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_achives.php";</script>';
+        //     exit();
+        // }
 
         // Update database record
         unlink("assets/images/gallery/" . $user_image);
         unlink("assets/images/gallery/thumb/" . $user_image);
-      echo $sql =("UPDATE `tbl_add_achiveres` SET user_id='$user_id',user_name='$user_name',user_image='$file_name' WHERE id='$user'");
+      echo $sql =("UPDATE `tbl_add_achiveres` SET user_id='$user_id',user_name='$user_name',user_image='$file_name' WHERE id='$id'");
     } else {
         // Update without changing the image
-        $sql =("UPDATE `tbl_add_achiveres` SET user_id='$user_id',user_name='$user_name' WHERE id='$user'");
+        $sql =("UPDATE `tbl_add_achiveres` SET user_id='$user_id',user_name='$user_name' WHERE id='$id'");
     }
 
     $result = mysqli_query($con, $sql);

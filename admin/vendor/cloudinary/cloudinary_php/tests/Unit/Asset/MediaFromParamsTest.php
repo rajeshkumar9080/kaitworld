@@ -17,6 +17,9 @@ use Cloudinary\Asset\Image;
 use Cloudinary\Asset\Media;
 use Cloudinary\Configuration\Configuration;
 use Cloudinary\Configuration\UrlConfig;
+use Cloudinary\Utils;
+use InvalidArgumentException;
+use UnexpectedValueException;
 
 /**
  * Class MediaFromParamsTest
@@ -50,6 +53,33 @@ final class MediaFromParamsTest extends AssetTestCase
     }
 
     /**
+     * Should allow overriding cloud_name in $options
+     */
+    public function testCloudNameNoConfig()
+    {
+        self::clearEnvironment();
+
+        $options = ['cloud_name' => 'test321'];
+
+        self::assertMediaFromParamsUrl(
+            self::IMAGE_NAME,
+            $options,
+            $options
+        );
+    }
+
+    public function testNoConfigThrowsException()
+    {
+        self::clearEnvironment();
+
+        $this->expectException(InvalidArgumentException::class);
+
+        self::assertMediaFromParamsUrl(
+            self::IMAGE_NAME
+        );
+    }
+
+    /**
      * Should use default secure distribution if secure=true
      */
     public function testSecureDistribution()
@@ -59,7 +89,7 @@ final class MediaFromParamsTest extends AssetTestCase
         self::assertMediaFromParamsUrl(
             self::IMAGE_NAME,
             $options,
-            ['protocol' => 'https']
+            ['protocol' => self::PROTOCOL_HTTPS]
         );
 
         $options = ['secure' => false];
@@ -68,6 +98,28 @@ final class MediaFromParamsTest extends AssetTestCase
             self::IMAGE_NAME,
             $options,
             ['protocol' => self::PROTOCOL_HTTP]
+        );
+    }
+
+    /**
+     * Should respect "secure" configuration key set by user.
+     */
+    public function testSecureDistributionFromConfig()
+    {
+        Configuration::instance()->url->secure();
+
+        self::assertMediaFromParamsUrl(
+            self::IMAGE_NAME,
+            [],
+            ['protocol' => self::PROTOCOL_HTTPS]
+        );
+
+        Configuration::instance()->init(['cloud' => ['cloud_name' => self::CLOUD_NAME], 'url' => ['secure' => true]]);
+
+        self::assertMediaFromParamsUrl(
+            self::IMAGE_NAME,
+            [],
+            ['protocol' => self::PROTOCOL_HTTPS]
         );
     }
 
@@ -81,7 +133,7 @@ final class MediaFromParamsTest extends AssetTestCase
         self::assertMediaFromParamsUrl(
             self::IMAGE_NAME,
             $options,
-            ['hostname' => self::TEST_HOSTNAME, 'protocol' => 'https']
+            ['hostname' => self::TEST_HOSTNAME, 'protocol' => self::PROTOCOL_HTTPS]
         );
 
         $options = ['secure_cname' => self::TEST_HOSTNAME, 'secure' => true];
@@ -89,7 +141,7 @@ final class MediaFromParamsTest extends AssetTestCase
         self::assertMediaFromParamsUrl(
             self::IMAGE_NAME,
             $options,
-            ['hostname' => self::TEST_HOSTNAME, 'protocol' => 'https']
+            ['hostname' => self::TEST_HOSTNAME, 'protocol' => self::PROTOCOL_HTTPS]
         );
     }
 
@@ -110,7 +162,7 @@ final class MediaFromParamsTest extends AssetTestCase
             [
                 'hostname'   => self::CLOUD_NAME . '-res-2.' . UrlConfig::DEFAULT_DOMAIN,
                 'cloud_name' => '',
-                'protocol'   => 'https',
+                'protocol'   => self::PROTOCOL_HTTPS,
             ]
         );
     }
@@ -255,6 +307,24 @@ final class MediaFromParamsTest extends AssetTestCase
     }
 
     /**
+     * Should set format as transformation parameter for fetched URLs.
+     */
+    public function testFetchWithFormat()
+    {
+        $options = ['type' => DeliveryType::FETCH, 'format' => 'jpg'];
+
+        self::assertMediaFromParamsUrl(
+            self::FETCH_IMAGE_URL,
+            $options,
+            [
+                'delivery_type' => DeliveryType::FETCH,
+                'source'        => self::FETCH_IMAGE_URL,
+                'path'          => 'f_jpg',
+            ]
+        );
+    }
+
+    /**
      * Tests force_version parameter under different conditions.
      */
     public function testForceVersion()
@@ -377,6 +447,14 @@ final class MediaFromParamsTest extends AssetTestCase
                     'source'             => 'sample.jpg',
                 ],
                 's--2hbrSMPOjj5BJ4xV7SgFbRDevFaQNUFf--',
+            ],
+            'Should sign a URL with a short signature by default and use SHA256 when configured' => [
+                [
+                    'sign_url' => true,
+                    'signature_algorithm' => Utils::ALGO_SHA256,
+                    'source' => 'sample.jpg',
+                ],
+                's--2hbrSMPO--'
             ],
         ];
     }
@@ -503,13 +581,13 @@ final class MediaFromParamsTest extends AssetTestCase
 
     /**
      * Should disallow url_suffix with '.'
-     *
-     * @expectedException \UnexpectedValueException
      */
     public function testDisallowSuffixWithDot()
     {
         //
         $options = ['url_suffix' => 'hello.world', 'private_cdn' => true];
+
+        $this->expectException(UnexpectedValueException::class);
         self::assertMediaFromParamsUrl(
             self::IMAGE_NAME,
             $options
@@ -518,13 +596,12 @@ final class MediaFromParamsTest extends AssetTestCase
 
     /**
      * Should disallow url_suffix with '/'
-     *
-     * @expectedException \UnexpectedValueException
      */
     public function testDisallowSuffixWithSlash()
     {
         $options = ['url_suffix' => 'hello/world', 'private_cdn' => true];
 
+        $this->expectException(UnexpectedValueException::class);
         self::assertMediaFromParamsUrl(
             self::IMAGE_NAME,
             $options

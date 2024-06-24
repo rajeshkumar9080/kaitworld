@@ -12,11 +12,12 @@ namespace Cloudinary\Asset;
 
 use Cloudinary\ArrayUtils;
 use Cloudinary\ClassUtils;
-use Cloudinary\Configuration\CloudConfig;
 use Cloudinary\Configuration\AssetConfigTrait;
+use Cloudinary\Configuration\CloudConfig;
 use Cloudinary\Configuration\Configuration;
 use Cloudinary\Configuration\LoggingConfig;
 use Cloudinary\Configuration\UrlConfig;
+use Cloudinary\Exception\ConfigurationException;
 use Cloudinary\JsonUtils;
 use Cloudinary\Log\LoggerTrait;
 use Cloudinary\StringUtils;
@@ -204,9 +205,15 @@ abstract class BaseAsset implements AssetInterface
         $configuration = (new Configuration(Configuration::instance()));
 
         # set v1 defaults
-        $configuration->url->secure = false;
+        if (! $configuration->url->isExplicitlySet('secure')) {
+            $configuration->url->secure(false);
+        }
+        if (! $configuration->url->isExplicitlySet('analytics')) {
+            $configuration->url->analytics(false);
+        }
 
         $configuration->importJson($params);
+        $configuration->validate();
 
         return new static($asset, $configuration);
     }
@@ -267,7 +274,7 @@ abstract class BaseAsset implements AssetInterface
     public function configuration($configuration)
     {
         $tempConfiguration = new Configuration($configuration, true); // TODO: improve performance here
-        $this->cloud     = $tempConfiguration->cloud;
+        $this->cloud       = $tempConfiguration->cloud;
         $this->urlConfig   = $tempConfiguration->url;
         $this->logging     = $tempConfiguration->logging;
 
@@ -339,6 +346,7 @@ abstract class BaseAsset implements AssetInterface
      * Serializes to URL string.
      *
      * @return string
+     * @throws ConfigurationException
      */
     public function toUrl()
     {
@@ -368,6 +376,7 @@ abstract class BaseAsset implements AssetInterface
      *
      * @return mixed
      */
+    #[\ReturnTypeWillChange]
     public function jsonSerialize($includeEmptyKeys = false, $includeEmptySections = false)
     {
         $json = $this->asset->jsonSerialize($includeEmptyKeys);

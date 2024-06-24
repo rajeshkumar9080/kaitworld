@@ -127,19 +127,19 @@
 							  <div class="col-md-12 mb-3">
                                 <input type="date" class="form-control" name="blog_posted_date" required placeholder="Posted date" value="<?php echo $rowresultl['blog_posted_date'];?>"/>
                                </div>  -->
-							  <div class="col-md-12 mb-3">
+							  <div class="col-md-12 mb-3">         
                          <label for="image">Photo</label>
                         <img src="assets/images/gallery/<?php echo $row['trip_image'];?>" alt="image" width="100px" height="100px">
                       </div>
-                      <div class="form-group">
+                      <div class="form-group">      
                         <input id="image" class="form-control" name="trip_image" type="file">
                       </div>
                       
 							  <input type="hidden" value="<?php echo $row['id'];?>" name="id">
-							  <input type="hidden" value="<?php echo $row['trip_image'];?>" name="trip_image" >
+							  <input type="hidden" value="<?php echo $row['trip_image'];?>" name="trip_image" >     
                             </div>                         
-                        </div>
-                        <div class="modal-footer">
+                        </div>          
+                        <div class="modal-footer">    
                           <button type="submit" class="btn btn-info" value="update" name="update">Update</button>
                           <button type="button" class="btn btn-default waves-effect" data-bs-dismiss="modal">Cancel</button>
                         </div>
@@ -158,7 +158,7 @@
 					  </div>
 					<?php 
 						$id=$row['id'];
-						$execution="SELECT * FROM tbl_add_trip where id='$id' ";
+						$execution="SELECT * FROM tbl_add_trip where id='$id'";
 						$exe_results=mysqli_query($con,$execution);
 						$rowresults = mysqli_fetch_array($exe_results);
 						?>
@@ -368,47 +368,51 @@ if ($_POST["delete"])
 		?>
 
 
-<?php  
-if( isset($_POST['update'] ) ) { 
-  $id=$_POST['id'];
- $title=$_POST['title'];
- $content=$_POST['content'];
-  $trip_image=$_POST['trip_image'];
-  $file_name = $_FILES["img_files"]["name"];
+<?php
+if (isset($_POST['update'])) {
+    // Assuming $con is your database connection object and $id is the ID of the record to update
 
- if (!empty($file_name)) {
-  $folderName ="assets/images/gallery/";
-  $filepath = $folderName . basename($file_name);
-  $image_info = getimagesize($_FILES["img_files"]["tmp_name"]);
-  $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
-  $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
+    // Sanitize and retrieve form data
+    // $id = mysqli_real_escape_string($con, $_POST['id']);
+    $title = mysqli_real_escape_string($con, $_POST['title']);
+    $content = mysqli_real_escape_string($con, $_POST['content']);
+    $trip_image = mysqli_real_escape_string($con, $_POST['trip_image']);
+    $file_name = $_FILES["img_files"]["name"];
 
-  if (!in_array($image_mime, $valid_image_check)) {
-      echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_trips.php";</script>';
-      exit();
+    // Validate file upload
+    if (!empty($file_name)) {
+        $folderName = "assets/images/gallery/";
+        $filepath = $folderName . basename($file_name);
+        $image_info = getimagesize($_FILES["img_files"]["tmp_name"]);
+        $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
+        $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
+
+        if (!in_array($image_mime, $valid_image_check)) {
+            // echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_trips.php";</script>';
+            // exit();
+        }
+
+        // Move uploaded file
+        if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
+             echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_trips.php";</script>';
+            // exit();
+        }
+
+      // Update database record
+      unlink("assets/images/gallery/" . $trip_image);
+      unlink("assets/images/gallery/thumb/" . $trip_image);
+   $sql ="UPDATE tbl_add_trip SET title='$title',content='$content',trip_image='$file_name' WHERE id='$id'";
+  } else {
+      // Update without changing the image
+ $sql ="UPDATE tbl_add_trip SET title='$title',content='$content' WHERE id='$id'";
   }
 
-  // Move uploaded file
-  if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-      echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_trips.php";</script>';
-      exit();
+  $result = mysqli_query($con, $sql);
+  if ($result) {
+      echo '<script type="text/javascript">alert("Updated successfully.");window.location.href = "view_trips.php";</script>';
+  } else {
+      echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_trips.php";</script>';
   }
-
-  // Update database record
-  unlink("assets/images/gallery/" . $trip_image);
-  unlink("assets/images/gallery/thumb/" . $trip_image);
-echo $sql =("UPDATE tbl_add_trip SET title='$title',content='$content',trip_image='$file_name' WHERE id='$id'");
-} else {
-  // Update without changing the image
-  $sql =("UPDATE tbl_add_trip SET title='$title',content='$content' WHERE id='$id'");
-}
-
-$result = mysqli_query($con, $sql);
-if ($result) {
-  echo '<script type="text/javascript">alert("Updated successfully.");window.location.href = "view_trips.php";</script>';
-} else {
-  echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_trips.php";</script>';
-}
 }
 ?>
 

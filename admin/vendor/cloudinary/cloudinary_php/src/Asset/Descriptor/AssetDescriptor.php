@@ -159,6 +159,10 @@ class AssetDescriptor implements AssetInterface
      */
     public function setSuffix($suffix)
     {
+        if (is_null($suffix)) {
+            return $this;
+        }
+
         if (preg_match('/[.\/]/', $suffix)) {
             throw new \UnexpectedValueException(static::class . '::$suffix must not include . or /');
         }
@@ -217,10 +221,15 @@ class AssetDescriptor implements AssetInterface
             $assetJson['location'],
             $assetJson['filename'],
             $assetJson['extension']
-            ) = FileUtils::splitPathFilenameExtension($source);
+            )
+            = FileUtils::splitPathFilenameExtension($source);
 
-        // Explicit 'format' parameter overrides extension.
-        ArrayUtils::addNonEmpty($assetJson, 'extension', ArrayUtils::get($params, 'format'));
+        // Explicit 'format' parameter overrides extension. (Fetch URLs are not affected).
+        if ($assetJson['delivery_type'] != DeliveryType::FETCH
+            || ! ArrayUtils::get($params, 'use_fetch_format', false)
+        ) {
+            ArrayUtils::addNonEmpty($assetJson, 'extension', ArrayUtils::get($params, 'format'));
+        }
 
         return self::fromJson(['asset' => $assetJson]);
     }
@@ -285,6 +294,7 @@ class AssetDescriptor implements AssetInterface
      *
      * @return mixed
      */
+    #[\ReturnTypeWillChange]
     public function jsonSerialize($includeEmptyKeys = false)
     {
         $dataArr = [
@@ -307,8 +317,8 @@ class AssetDescriptor implements AssetInterface
     /**
      * Sets the property of the asset descriptor.
      *
-     * @param string $propertyName The name of the property.
-     * @param mixed $propertyValue The value of the property.
+     * @param string $propertyName  The name of the property.
+     * @param mixed  $propertyValue The value of the property.
      *
      * @return $this
      *

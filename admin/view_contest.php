@@ -136,7 +136,7 @@ include('db_config.php');
                             </div>                         
                         </div>
                         <div class="modal-footer">
-                          <button type="submit" class="btn btn-info" name="submit">Update</button>
+                          <button type="submit" class="btn btn-info" name="update">Update</button>
                           <button type="button" class="btn btn-default waves-effect" data-bs-dismiss="modal">Cancel</button>
                         </div>
 						</form>
@@ -376,7 +376,7 @@ if ($_POST["delete"])
 		
 		
     <?php
-if (isset($_POST['submit'])) {
+if (isset($_POST['update'])) {
     // Assuming $con is your database connection object and $id is the ID of the record to update
 
     // Sanitize and retrieve form data
@@ -395,14 +395,14 @@ if (isset($_POST['submit'])) {
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
 
         if (!in_array($image_mime, $valid_image_check)) {
-            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_contest.php";</script>';
-            exit();
+            // echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_contest.php";</script>';
+            // exit();
         }
 
         // Move uploaded file
         if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-            echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_contest.php";</script>';
-            exit();
+            // echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_contest.php";</script>';
+            // exit();
         }
 
         // Update database record

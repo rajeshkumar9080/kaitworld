@@ -13,16 +13,17 @@ namespace Cloudinary\Api;
 use Cloudinary\Api\Exception\ApiError;
 use Cloudinary\Api\Exception\GeneralError;
 use Cloudinary\ArrayUtils;
-use Cloudinary\Configuration\CloudConfig;
 use Cloudinary\Configuration\ApiConfig;
+use Cloudinary\Configuration\CloudConfig;
 use Cloudinary\Configuration\Configuration;
 use Cloudinary\FileUtils;
 use Cloudinary\Utils;
 use Exception;
 use GuzzleHttp\Client;
-use GuzzleHttp\Promise;
+use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\LimitStream;
+use InvalidArgumentException;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
 
@@ -51,19 +52,15 @@ class ApiClient extends BaseApiClient
 
         $this->configuration($configuration);
 
-        $this->baseUri = "{$this->api->uploadPrefix}/" . self::apiVersion() . "/{$this->cloud->cloudName}/";
+        $this->baseUri = "{$this->api->uploadPrefix}/" . self::apiVersion($this->api->apiVersion)
+                         . "/{$this->cloud->cloudName}/";
 
-        $clientConfig = [
-            'auth'            => [$this->cloud->apiKey, $this->cloud->apiSecret],
-            'base_uri'        => $this->baseUri,
-            'connect_timeout' => $this->api->connectionTimeout,
-            'timeout'         => $this->api->timeout,
-            'proxy'           => $this->api->apiProxy,
-            'headers'         => ['User-Agent' => self::userAgent()],
-            'http_errors'     => false, // We handle HTTP errors by ourselves and throw corresponding exceptions
-        ];
+        $this->createHttpClient();
+    }
 
-        $this->httpClient = new Client($clientConfig);
+    protected function createHttpClient()
+    {
+        $this->httpClient = new Client($this->buildHttpClientConfig());
     }
 
     /**
@@ -91,10 +88,8 @@ class ApiClient extends BaseApiClient
     {
         $tempConfiguration = new Configuration($configuration); // TODO: improve performance here
 
-        $tempConfiguration->cloud->assertNotEmpty(['cloudName', 'apiKey', 'apiSecret']);
-
-        $this->cloud = $tempConfiguration->cloud;
-        $this->api   = $tempConfiguration->api;
+        $this->cloud   = $tempConfiguration->cloud;
+        $this->api     = $tempConfiguration->api;
         $this->logging = $tempConfiguration->logging;
 
         return $this;
@@ -118,16 +113,20 @@ class ApiClient extends BaseApiClient
     /**
      * Performs an HTTP POST request with the given form parameters asynchronously.
      *
+     * Please note that form parameters are encoded in a slightly different way, see Utils::buildHttpQuery for details.
+     *
      * @param string|array $endPoint   The API endpoint path.
      * @param array        $formParams The form parameters
      *
      * @return PromiseInterface
      *
+     * @see Utils::buildHttpQuery
+     *
      * @internal
      */
     public function postFormAsync($endPoint, $formParams)
     {
-        return $this->callAsync(HttpMethod::POST, $endPoint, ['form_params' => $formParams]);
+        return $this->callAsync(HttpMethod::POST, $endPoint, ['body' => Utils::buildHttpQuery($formParams)]);
     }
 
     /**
@@ -142,9 +141,28 @@ class ApiClient extends BaseApiClient
      */
     public function postAndSignFormAsync($endPoint, $formParams)
     {
-        ApiUtils::signRequest($formParams, $this->cloud);
+        if (! $this->cloud->oauthToken) {
+            ApiUtils::signRequest($formParams, $this->cloud);
+        }
 
         return $this->postFormAsync($endPoint, $formParams);
+    }
+
+    /**
+     * Signs posted parameters using configured account credentials and posts as a JSON to the endpoint.
+     *
+     * @param string|array $endPoint The API endpoint path.
+     * @param array        $params   The parameters
+     *
+     * @return PromiseInterface
+     *
+     * @internal
+     */
+    public function postAndSignJsonAsync($endPoint, $params)
+    {
+        ApiUtils::signRequest($params, $this->cloud);
+
+        return $this->postJsonAsync($endPoint, $params);
     }
 
     /**
@@ -223,7 +241,7 @@ class ApiClient extends BaseApiClient
     {
         $unsigned = ArrayUtils::get($options, 'unsigned');
 
-        if (! $unsigned) {
+        if (! $this->cloud->oauthToken && ! $unsigned) {
             ApiUtils::signRequest($parameters, $this->cloud);
         }
 
@@ -253,10 +271,7 @@ class ApiClient extends BaseApiClient
 
         $size = $fileHandle->getSize();
 
-        $options[ApiConfig::CHUNK_SIZE] = min(
-            $this->api->chunkSize,
-            ArrayUtils::get($options, ApiConfig::CHUNK_SIZE, ApiConfig::DEFAULT_CHUNK_SIZE)
-        );
+        $options[ApiConfig::CHUNK_SIZE] = ArrayUtils::get($options, ApiConfig::CHUNK_SIZE, $this->api->chunkSize);
 
         $options[ApiConfig::TIMEOUT] = ArrayUtils::get($options, ApiConfig::TIMEOUT, $this->api->uploadTimeout);
 
@@ -266,6 +281,24 @@ class ApiClient extends BaseApiClient
         }
 
         return $this->postLargeFileAsync($endPoint, $fileHandle, $parameters, $options);
+    }
+
+    /**
+     * Performs an HTTP call asynchronously.
+     *
+     * @param string       $method   An HTTP method.
+     * @param string|array $endPoint An API endpoint path.
+     * @param array        $options  An array containing request body and additional options passed to the HTTP Client.
+     *
+     * @return PromiseInterface
+     *
+     * @internal
+     */
+    protected function callAsync($method, $endPoint, $options)
+    {
+        static::validateAuthorization($this->cloud, $options);
+
+        return parent::callAsync($method, $endPoint, $options);
     }
 
     /**
@@ -323,13 +356,13 @@ class ApiClient extends BaseApiClient
                     ]
                 );
 
-                return Promise\rejection_for($e);
+                return Create::rejectionFor($e);
             }
 
             ArrayUtils::addNonEmptyFromOther($parameters, 'public_id', $uploadResult);
         }
 
-        return Promise\promise_for($uploadResult);
+        return Create::promiseFor($uploadResult);
     }
 
     /**
@@ -348,7 +381,7 @@ class ApiClient extends BaseApiClient
     protected function postSingleChunkAsync($endPoint, $singleChunk, $parameters, $options = [])
     {
         $filePart = [
-            'name'     => 'file',
+            'name'     => ArrayUtils::get($options, 'file_field', 'file'),
             'contents' => $singleChunk,
         ];
 
@@ -360,6 +393,37 @@ class ApiClient extends BaseApiClient
         $headers = ArrayUtils::pop($options, 'headers');
 
         return $this->postMultiPartAsync($endPoint, $multiPart, $headers, $options);
+    }
+
+    /**
+     * Build configuration used by HTTP client
+     *
+     * @return array
+     *
+     * @internal
+     */
+    protected function buildHttpClientConfig()
+    {
+        $clientConfig = [
+            'base_uri'        => $this->baseUri,
+            'connect_timeout' => $this->api->connectionTimeout,
+            'timeout'         => $this->api->timeout,
+            'proxy'           => $this->api->apiProxy,
+            'headers'         => ['User-Agent' => self::userAgent()],
+            'http_errors'     => false, // We handle HTTP errors by ourselves and throw corresponding exceptions
+        ];
+
+        if (isset($this->cloud->oauthToken)) {
+            $authConfig = [
+                'headers' => ['Authorization' => 'Bearer ' . $this->cloud->oauthToken],
+            ];
+        } else {
+            $authConfig = [
+                'auth' => [$this->cloud->apiKey, $this->cloud->apiSecret],
+            ];
+        }
+
+        return array_merge_recursive($clientConfig, $authConfig);
     }
 
     /**
@@ -381,5 +445,27 @@ class ApiClient extends BaseApiClient
                 $parameters
             )
         );
+    }
+
+    /**
+     * Validates if all required authorization params are passed.
+     *
+     * @param CloudConfig $cloudConfig A config to validate.
+     * @param array       $options     An array containing request body and additional options passed to the HTTP
+     *                                 Client.
+     *
+     * @throws InvalidArgumentException In a case not all required keys are set.
+     *
+     * @internal
+     */
+    protected static function validateAuthorization($cloudConfig, $options)
+    {
+        $keysToValidate = ['cloudName'];
+
+        if (empty($cloudConfig->oauthToken)) {
+            array_push($keysToValidate, 'apiKey', 'apiSecret');
+        }
+
+        $cloudConfig->assertNotEmpty($keysToValidate);
     }
 }

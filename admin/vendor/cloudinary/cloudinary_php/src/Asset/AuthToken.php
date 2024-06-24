@@ -35,6 +35,7 @@ class AuthToken
     const AUTH_TOKEN_NAME       = '__cld_token__';
     const TOKEN_SEPARATOR       = '~';
     const TOKEN_INNER_SEPARATOR = '=';
+    const TOKEN_ACL_SEPARATOR   = '!';
 
     /**
      * @var AuthTokenConfig $config The configuration of the authentication token.
@@ -71,7 +72,7 @@ class AuthToken
     /**
      * Indicates whether according to the current configuration, AuthToken is enabled or not
      *
-     * @return mixed
+     * @return bool
      */
     public function isEnabled()
     {
@@ -109,18 +110,18 @@ class AuthToken
     /**
      *  Generates an authorization token.
      *  Options:
-     *      number start_time - the start time of the token in seconds from epoch
-     *      string expiration - the expiration time of the token in seconds from epoch
-     *      string duration - the duration of the token (from start_time)
-     *      string ip - the IP address of the client
-     *      string acl - the ACL for the token
-     *      string url - the URL to authentication in case of a URL token
+     *      number start_time - the start time of the token in seconds from epoch.
+     *      string expiration - the expiration time of the token in seconds from epoch.
+     *      string duration - the duration of the token (from start_time).
+     *      string ip - the IP address of the client.
+     *      string acl - the ACL for the token.
+     *      string url - the URL to authentication in case of a URL token.
      *
-     * @param null|string $path url path to sign. Ignored if acl is set
+     * @param null|string $path url path to sign. Ignored if acl is set.
      *
-     * @return string The authorization token
+     * @return string The authorization token.
      *
-     * @throws UnexpectedValueException if neither expiration nor duration were provided
+     * @throws UnexpectedValueException if neither expiration nor duration nor one of acl or url were provided.
      */
     public function generate($path = null)
     {
@@ -130,12 +131,20 @@ class AuthToken
 
         list($start, $expiration) = $this->handleLifetime();
 
+        if (empty($path) && empty($this->config->acl)) {
+            throw new UnexpectedValueException('AuthToken must contain either acl or url property');
+        }
+
         $tokenParts = [];
 
         ArrayUtils::addNonEmpty($tokenParts, 'ip', $this->config->ip);
         ArrayUtils::addNonEmpty($tokenParts, 'st', $start);
         ArrayUtils::addNonEmpty($tokenParts, 'exp', $expiration);
-        ArrayUtils::addNonEmpty($tokenParts, 'acl', self::escapeToLower($this->config->acl));
+        $acl = $this->config->acl;
+        if (is_array($this->config->acl)) {
+            $acl = implode(self::TOKEN_ACL_SEPARATOR, $this->config->acl);
+        }
+        ArrayUtils::addNonEmpty($tokenParts, 'acl', self::escapeToLower($acl));
 
         $toSign = $tokenParts;
         if (! empty($path) && empty($this->config->acl)) {
@@ -165,7 +174,7 @@ class AuthToken
         $expiration = $this->config->expiration;
         $duration   = $this->config->duration;
 
-        if (! strcasecmp($start, 'now')) {
+        if (! strcasecmp((string) $start, 'now')) {
             $start = Utils::unixTimeNow();
         } elseif (is_numeric($start)) {
             $start = (int)$start;
@@ -182,11 +191,11 @@ class AuthToken
     }
 
     /**
-     * Converts URL to lowercase and escapes it.
+     * Escapes a url using lowercase hex characters
      *
      * @param string $url The URL to escape
      *
-     * @return string|string[]|null escaped and lowered URL
+     * @return string|string[]|null escaped URL
      */
     private static function escapeToLower($url)
     {

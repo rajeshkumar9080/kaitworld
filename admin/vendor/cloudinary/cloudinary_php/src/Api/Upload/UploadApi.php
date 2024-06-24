@@ -10,11 +10,12 @@
 
 namespace Cloudinary\Api\Upload;
 
-use Cloudinary\Api\ApiClient;
 use Cloudinary\Api\ApiUtils;
+use Cloudinary\Api\UploadApiClient;
 use Cloudinary\ArrayUtils;
 use Cloudinary\Asset\AssetType;
 use Cloudinary\Configuration\CloudConfig;
+use Cloudinary\Utils;
 use GuzzleHttp\Promise\PromiseInterface;
 
 /**
@@ -33,8 +34,10 @@ class UploadApi
     use TagTrait;
     use UploadTrait;
 
+    const MODE_DOWNLOAD = 'download';
+
     /**
-     * @var ApiClient $apiClient The HTTP API client instance.
+     * @var UploadApiClient $apiClient The HTTP API client instance.
      */
     protected $apiClient;
 
@@ -45,7 +48,7 @@ class UploadApi
      */
     public function __construct($configuration = null)
     {
-        $this->apiClient = new ApiClient($configuration);
+        $this->apiClient = new UploadApiClient($configuration);
     }
 
     /**
@@ -78,7 +81,7 @@ class UploadApi
         $baseUrl = $this->apiClient->getBaseUri();
         $path    = self::getUploadApiEndPoint($endPoint, ['resource_type' => $assetType]);
 
-        return ArrayUtils::implodeFiltered('?', ["{$baseUrl}{$path}", http_build_query($params)]);
+        return ArrayUtils::implodeFiltered('?', ["{$baseUrl}{$path}", Utils::buildHttpQuery($params)]);
     }
 
 
@@ -108,6 +111,25 @@ class UploadApi
     protected function callUploadApiAsync($endPoint = UploadEndPoint::UPLOAD, $params = [], $options = [])
     {
         return $this->apiClient->postAndSignFormAsync(
+            self::getUploadApiEndPoint($endPoint, $options),
+            ApiUtils::finalizeUploadApiParams($params)
+        );
+    }
+
+    /**
+     * Internal method for performing all Upload API calls as a json.
+     *
+     * @param string $endPoint The relative endpoint.
+     * @param array  $params   Parameters to pass to the endpoint.
+     * @param array  $options  Additional options.
+     *
+     * @return PromiseInterface
+     *
+     * @internal
+     */
+    protected function callUploadApiJsonAsync($endPoint = UploadEndPoint::UPLOAD, $params = [], $options = [])
+    {
+        return $this->apiClient->postAndSignJsonAsync(
             self::getUploadApiEndPoint($endPoint, $options),
             ApiUtils::finalizeUploadApiParams($params)
         );

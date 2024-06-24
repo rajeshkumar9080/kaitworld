@@ -21,10 +21,11 @@ use Psr\Http\Message\UriInterface;
  */
 class Utils
 {
-    const ALGO_SHA1                  = 'sha1';
-    const ALGO_SHA256                = 'sha256';
-    const SHORT_URL_SIGNATURE_LENGTH = 8;
-    const LONG_URL_SIGNATURE_LENGTH  = 32;
+    const ALGO_SHA1                      = 'sha1';
+    const ALGO_SHA256                    = 'sha256';
+    const SUPPORTED_SIGNATURE_ALGORITHMS = [self::ALGO_SHA1, self::ALGO_SHA256];
+    const SHORT_URL_SIGNATURE_LENGTH     = 8;
+    const LONG_URL_SIGNATURE_LENGTH      = 32;
 
     /**
      * Converts a float value to the string representation.
@@ -218,6 +219,38 @@ class Utils
 
         return $url;
     }
+
+    /**
+     * Fixes array encoding.
+     *
+     * http_build_query encodes a simple array value:
+     *   ['arr' => [v0', 'v1', ... ,'vn1]]
+     * as:
+     *   arr[0]=v0&arr[1]=v1&...&arr[n]=vn
+     *
+     * The issue with this encoding is that on the server written not in PHP,
+     * this query is parsed as an associative array/hashmap/dictionary of form:
+     *   {
+     *     "arr": {
+     *       "0" : "v0",
+     *       "1" : "v1",
+     *       ...
+     *       "n" : "vn"
+     *     }
+     *   }
+     *
+     * To avoid this undesired behaviour, indices must be removed, so the query string would look like:
+     * arr[]=v0&arr[]=v1&...&arr[]=vn
+     *
+     * @param array $params The query params to encode.
+     *
+     * @return string|string[]|null
+     */
+    public static function buildHttpQuery($params)
+    {
+        return preg_replace("/%5B\d+%5D/", "%5B%5D", http_build_query($params));
+    }
+
 
     /**
      * Returns current UNIX time in seconds.

@@ -34,7 +34,8 @@ class ConfigUtils
      */
     public static function isCloudinaryUrl($cloudinaryUrl)
     {
-        return Utils::tryParseUrl($cloudinaryUrl, [self::CLOUDINARY_URL_SCHEME]) ? true : false;
+        return Utils::tryParseUrl(self::normalizeCloudinaryUrl($cloudinaryUrl), [self::CLOUDINARY_URL_SCHEME]) ? true
+            : false;
     }
 
     /**
@@ -52,7 +53,7 @@ class ConfigUtils
             );
         }
 
-        $uri = Utils::tryParseUrl($cloudinaryUrl, [self::CLOUDINARY_URL_SCHEME]);
+        $uri = Utils::tryParseUrl(self::normalizeCloudinaryUrl($cloudinaryUrl), [self::CLOUDINARY_URL_SCHEME]);
 
         if (! $uri) {
             throw new UnexpectedValueException(
@@ -70,7 +71,7 @@ class ConfigUtils
         ArrayUtils::addNonEmpty($cloud, CloudConfig::API_KEY, ArrayUtils::get($userPass, 0));
         ArrayUtils::addNonEmpty($cloud, CloudConfig::API_SECRET, ArrayUtils::get($userPass, 1));
 
-        $config = array_merge($qParams, [CloudConfig::CONFIG_NAME => $cloud]);
+        $config = array_merge_recursive($qParams, [CloudConfig::CONFIG_NAME => $cloud]);
 
         $isPrivateCdn = ! empty($uri->getPath()) && $uri->getPath() !== '/';
         if ($isPrivateCdn) {
@@ -86,6 +87,22 @@ class ConfigUtils
         }
 
         return $config;
+    }
+
+    /**
+     * Tries to normalize the supplied cloudinary url string.
+     *
+     * @param string $cloudinaryUrl Cloudinary url candidate.
+     *
+     * @return string
+     */
+    public static function normalizeCloudinaryUrl($cloudinaryUrl)
+    {
+        if (! is_string($cloudinaryUrl)) {
+            return $cloudinaryUrl;
+        }
+
+        return StringUtils::truncatePrefix($cloudinaryUrl, Configuration::CLOUDINARY_URL_ENV_VAR . '=');
     }
 
     /**

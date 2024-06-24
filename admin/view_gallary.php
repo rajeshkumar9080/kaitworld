@@ -136,7 +136,7 @@ include('db_config.php');
                             </div>                         
                         </div>
                         <div class="modal-footer">
-                          <button type="submit" class="btn btn-info" name="submit">Update</button>
+                          <button type="submit" class="btn btn-info" name="update">Update</button>
                           <button type="button" class="btn btn-default waves-effect" data-bs-dismiss="modal">Cancel</button>
                         </div>
 						</form>
@@ -303,17 +303,14 @@ if(isset($_POST['submit'] ) ) {
 	$user_title=$_POST['user_title'];
 	$user_content=$_POST['user_content'];
   $registered_date= date('Y-m-d'); 
-  $filename = $_FILES["user_image"]["name"];
-  
-	  //  require_once('./php-image-magician/php_image_magician.php');
-    
+  $filename = $_FILES["user_image"]["name"];    
       $allowed_types = array("image/jpeg","image/png","image/gif","image/bmp","image/gif");
-      $max_size = 5 * 1024 * 1024; // 5 MB
+      // $max_size = 5 * 1024 * 1024; // 5 MB
     
       // Validate file type
       if (in_array($_FILES["user_image"]["type"], $allowed_types)) {
           // Validate file size
-          if ($_FILES["user_image"]["size"] <= $max_size) {
+          if ($_FILES["user_image"]) {
               // Move the uploaded file to the desired directory
               $upload_dir = "assets/images/gallery/";
               $file_name = basename($_FILES["user_image"]["name"]);
@@ -334,9 +331,7 @@ if(isset($_POST['submit'] ) ) {
 
             // // $magicianObj = new imageLib($filepath);
             // $magicianObj->resizeImage(280, 160);
-            // $magicianObj->saveImage($folderName . 'thumb/' . $filename, 9);
-
-           
+            // $magicianObj->saveImage($folderName . 'thumb/' . $filename, 9); 
        echo $sql_query ="INSERT INTO tbl_add_gallery (user_title,user_content,user_image,registered_date)VALUES ('$user_title','$user_content','$filename','$registered_date')";
               $query = mysqli_query($con,$sql_query); 
               // $result = mysqli_num_rows($query);
@@ -366,18 +361,21 @@ if ($_POST["delete"])
 		$user_image=$_POST['user_image'];
 	 unlink("assets/images/gallery/".$user_image);
 	 unlink("assets/images/gallery/thumb/".$user_image);
-		$sql="DELETE FROM tbl_add_gallery  WHERE so_id='$so_id'";
+		$sql="DELETE FROM tbl_add_gallery WHERE user_image='$user_image'";
 		$res=mysqli_query($con,$sql);
 		if($res){
-			echo '<script type="text/javascript">alert("Deleted sucessfully");window.location.href = "view_home.php";</script>';
+			echo '<script type="text/javascript">alert("Deleted sucessfully");window.location.href = "view_gallary.php";</script>';
 
 		}
 }
 		?>
 		
+   
+  
+  
 		
     <?php
-if (isset($_POST['submit'])) {
+if (isset($_POST['update'])) {
     // Assuming $con is your database connection object and $id is the ID of the record to update
 
     // Sanitize and retrieve form data
@@ -395,17 +393,17 @@ if (isset($_POST['submit'])) {
         $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
     
-        if (!in_array($image_mime, $valid_image_check)) {
-            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_gallary.php";</script>';
-            exit();
+         if (!in_array($image_mime, $valid_image_check)) {
+        //     echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_gallary.php";</script>';
+        //     exit();
         }
-    
+      
         // Move uploaded file
         if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-            echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_gallary.php";</script>';
-            exit();
-        }
-
+        //     echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_gallary.php";</script>';
+        //     exit();
+         }
+           
         // Update database record
         unlink("assets/images/gallery/" . $user_image);
         unlink("assets/images/gallery/thumb/" . $user_image);
@@ -414,7 +412,6 @@ if (isset($_POST['submit'])) {
         // Update without changing the image
         $sql =("UPDATE `tbl_add_gallery` SET user_title='$user_title',user_content='$user_content' WHERE so_id='$so_id'");
     }
-
     $result = mysqli_query($con, $sql);
     if ($result) {
         echo '<script type="text/javascript">alert("Updated successfully.");window.location.href = "view_gallary.php";</script>';

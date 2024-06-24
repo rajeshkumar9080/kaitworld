@@ -10,9 +10,12 @@
 
 namespace Cloudinary\Test\Unit\Asset;
 
+use Cloudinary\Asset\Analytics;
+use Cloudinary\Asset\AuthToken;
 use Cloudinary\Asset\Image;
 use Cloudinary\Configuration\Configuration;
 use Cloudinary\Configuration\UrlConfig;
+use Cloudinary\Exception\ConfigurationException;
 
 /**
  * Class DistributionTest
@@ -222,10 +225,25 @@ final class DistributionTest extends AssetTestCase
      */
     public function testLongSignature()
     {
-        $this->image->urlConfig->signUrl = true;
+        $this->image->urlConfig->signUrl          = true;
         $this->image->urlConfig->longUrlSignature = true;
 
         self::assertImageUrl('s--RVsT3IpYGITMIc0RjCpde9T9Uujc2c1X--/' . self::IMAGE_NAME, $this->image);
+    }
+
+    public function testSignatureNoApiSecret()
+    {
+        $this->image->cloud->apiSecret   = null;
+        $this->image->urlConfig->signUrl = true;
+
+        $expectedExceptionMessage = 'Must supply apiSecret';
+        try {
+            $this->image->toUrl();
+        } catch (ConfigurationException $e) {
+            $message = $e->getMessage();
+        }
+
+        self::assertStrEquals($expectedExceptionMessage, $message);
     }
 
     public function testForceVersion()
@@ -238,6 +256,50 @@ final class DistributionTest extends AssetTestCase
         self::assertImageUrl(
             self::IMAGE_IN_FOLDER,
             (new Image(self::IMAGE_IN_FOLDER))->forceVersion(false)
+        );
+    }
+
+    public function testAnalytics()
+    {
+        $config = new Configuration(Configuration::instance());
+
+        $config->url->analytics();
+
+        self::assertStringContainsString(
+            '?' . Analytics::QUERY_KEY . '=',
+            (string)new Image(self::ASSET_ID, $config)
+        );
+    }
+
+    public function testNoAnalyticsPublicIDWithQuery()
+    {
+        $config = new Configuration(Configuration::instance());
+
+        $config->url->analytics();
+
+        self::assertStringNotContainsString(
+            '?' . Analytics::QUERY_KEY . '=',
+            (string)new Image(self::FETCH_IMAGE_URL_WITH_QUERY, $config)
+        );
+    }
+
+    public function testNoAnalyticsWithAuthToken()
+    {
+        $config = new Configuration(Configuration::instance());
+
+        $config->authToken->key      = AuthTokenTestCase::AUTH_TOKEN_KEY;
+        $config->authToken->duration = AuthTokenTestCase::DURATION;
+
+        $config->url->signUrl()->analytics();
+
+        self::assertStringNotContainsString(
+            '?' . Analytics::QUERY_KEY . '=',
+            (string)new Image(self::ASSET_ID, $config)
+        );
+
+        self::assertStringContainsString(
+            AuthToken::AUTH_TOKEN_NAME,
+            (string)new Image(self::ASSET_ID, $config)
         );
     }
 }

@@ -210,13 +210,7 @@ $ids=$_REQUEST['id'];?>
                     </div>
                     <!-- /.modal-dialog -->
                   </div>
-          
-          
-          
-         
-          
-          
-          
+ 
           <!-- -------------------------------------------------------------- -->
           <!-- End PAge Content -->
           <!-- -------------------------------------------------------------- -->
@@ -279,6 +273,7 @@ $ids=$_REQUEST['id'];?>
 	<script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
   </body>
 </html>
+
 <script>
 CKEDITOR.replaceClass = 'editor';
 
@@ -332,6 +327,7 @@ if ($_POST["delete"])
 		}
 }
 		?>
+    
 <?php
 if(isset($_POST['category_update'])) { 
 $content_child_sl_no =$_POST['content_child_sl_no'];
