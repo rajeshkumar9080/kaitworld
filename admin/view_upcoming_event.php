@@ -1,5 +1,21 @@
-<?php include("header.php"); 
+<?php
+include("header.php");
 include('db_config.php');
+require 'vendor/autoload.php';
+
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+Configuration::instance([
+    'cloud' => [
+        'cloud_name' => 'dspp2vqid',
+        'api_key'    => '838937238819565',
+        'api_secret' => 'SOIhazSJm8MEUaov7sMAcBQRlew'
+    ],
+    'url' => [
+        'secure' => true
+    ]
+]);
 ?>
     <!-- This page plugin CSS -->
     <link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
@@ -55,7 +71,7 @@ include('db_config.php');
                         <tr>
 						  <td><?php echo $i++;?></td>
                           <td><?php echo $row['place1'];?></td>
-						   <td  class="pro-list-img"><img src="assets/images/gallery/<?php echo $row['event_image1'];?>" style="height: 44px;"></td>
+						   <td  class="pro-list-img"><img src="<?php echo $row['event_image1'];?>" style="height: 44px;"></td>
 											
                           <td><?php  $originalDate = $row['registered_date'];  echo $newDate = date("y-m-d", strtotime($originalDate)); ?></td>
                          <td><a class="like" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;
@@ -85,7 +101,7 @@ include('db_config.php');
                               </div>
 							  <div class="col-md-12 mb-3">
                          <label for="image">Photo</label>
-                        <img src="assets/images/gallery/<?php echo $row['event_image1'];?>" alt="image"  width="100px" height="100px">
+                        <img src="<?php echo $row['event_image1'];?>" alt="image"  width="100px" height="100px">
                       </div>
                       <div class="form-group">
                         <input id="image" class="form-control" name="img_files" type="file">
@@ -247,42 +263,59 @@ include('db_config.php');
     <script src="https://cdn.datatables.net/buttons/1.5.1/js/buttons.print.min.js"></script>
     <script src="dist/js/pages/datatable/datatable-advanced.init.js"></script>
   </body>
+
   <?php
-									// session_start();
-									// error_reporting(0);
-									// include "db_config.php";
-									// Uploads files
-									if(isset($_POST['submit'])) 
-                  { 
-                    $place1=$_POST['place1'];
-                    $registered_date= date('Y-m-d'); 
-									  $event_image1=$_FILES["event_image1"]["name"];
+if (isset($_POST['submit'])) {
+    // Database connection assuming $con is your mysqli connection object
+    $place1 = mysqli_real_escape_string($con, $_POST['place1']);
+    $registered_date = date('Y-m-d');
+    $event_image1 = $_FILES["event_image1"]["name"];
+    $file_tmp = $_FILES["event_image1"]["tmp_name"];
 
-                    $valid_image_check = array("image/gif","image/jpeg","image/jpg","image/png","image/bmp");
-     if (count($_FILES["event_image1"]) > 0) 
-    $folderName = "assets/images/gallery/";
-    move_uploaded_file($_FILES["event_image1"]["tmp_name"],"assets/images/gallery/".$_FILES["event_image1"]["name"]);
-    {
-      // $emsg .= "Failed to upload <strong>" . $_FILES["user_image"]["name"] . "</strong>. <br>";
-      // $counter++;
-               echo $sql ="INSERT INTO tbl_add_upcoming_event (place1,event_image1,registered_date) VALUES ('$place1','$event_image1','$registered_date')";
-              if (mysqli_query($con,$sql)) 
-              {
-                echo'<script type="text/javascript">alert("insert sucessfully");window.location.href = "view_upcoming_event.php";</script>';
+   $allowed_types = array("image/jpeg", "image/png", "image/gif", "image/bmp", "image/gif");
+  $max_size = 5 * 1024 * 1024; // 5 MB
 
-              }
-              else {
-                echo "<script>alert('Failed to upload image.');</script>";
-              }
-            }
-          }
-            ?>
+         // Validate file type
+  if (in_array($_FILES["event_image1"]["type"], $allowed_types)) {
+    // Validate file size
+    if ($_FILES["event_image1"]["size"] <= $max_size) {
+        // Move the uploaded file to the desired directory
+        $upload_dir = "assets/images/gallery/";
+        $file_name = basename($_FILES["event_image1"]["name"]);
+        $destination = $upload_dir . $file_name;
+
+        if (move_uploaded_file($_FILES["event_image1"]["tmp_name"], $destination)) {
+          // Upload the image to Cloudinary
+          try {
+              $cloudUpload = (new UploadApi())->upload($destination);
+              $cloudinaryUrl = $cloudUpload['secure_url'];
+        // Remove the local file after successful upload
+        unlink($destination);
+
+        // Insert into database
+        $sql = "INSERT INTO tbl_add_upcoming_event (place1, event_image1, registered_date) VALUES ('$place1', '$cloudinaryUrl', '$registered_date')";
+        $query = mysqli_query($con, $sql);
+
+        if ($query) {
+            echo '<script type="text/javascript">alert("Insert Successfully"); window.location.href = "view_upcoming_event.php";</script>';
+        } else {
+            echo '<script type="text/javascript">alert("Failed to insert into database"); window.location.href = "view_upcoming_event.php";</script>';
+        }
+    } catch (Exception $e) {
+        echo 'Cloudinary upload failed: ' . $e->getMessage();
+    }
+} else {
+    echo '<script type="text/javascript">alert("Invalid file type"); window.location.href = "view_upcoming_event.php";</script>';
+}
+    }
+  }
+}
+?>
 
 
 <?php error_reporting(0);
 if ($_POST["delete"])
 {
-
 		$id=$_POST['id'];
 		$event_image1=$_POST['event_image1'];
 	 unlink("assets/images/gallery/".$event_image1);
@@ -290,55 +323,69 @@ if ($_POST["delete"])
 		$sql="DELETE FROM tbl_add_upcoming_event WHERE id='$id'";
 		$res=mysqli_query($con,$sql);
 		if($res){
-			echo '<script type="text/javascript">alert("Deleted sucessfully");window.location.href = "view_events.php";</script>';
+			echo '<script type="text/javascript">alert("Deleted sucessfully");window.location.href = "view_upcoming_event.php";</script>';
 
 		}
 }
 		?> 
 
-  <?php  
-if( isset($_POST['update'] ) ) { 
-  $id=$_POST['id'];
- $place1=$_POST['place1'];
-  $event_image1=$_POST['event_image1'];
-  $file_name = $_FILES["img_files"]["name"];
+<?php
+// Check if form is submitted
+if (isset($_POST['update'])) {
+    // Assuming $con is your MySQLi database connection
 
-	// Validate file upload
+    // Sanitize and retrieve POST data
+    $id = mysqli_real_escape_string($con, $_POST['id']);
+    $place1 = mysqli_real_escape_string($con, $_POST['place1']);
+    $event_image1 = mysqli_real_escape_string($con, $_POST['event_image1']);
+    $file_name = $_FILES["img_files"]["name"];
+
+    // Validate file upload
     if (!empty($file_name)) {
         $folderName = "assets/images/gallery/";
         $filepath = $folderName . basename($file_name);
-        $image_info = getimagesize($_FILES["img_files"]["tmp_name"]);
         $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
 
-        // if (!in_array($image_mime, $valid_image_check)) {
-        //     echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_upcoming_event.php";</script>';
-        //     exit();
-        // }
+        if (!in_array($image_mime, $valid_image_check)) {
+            echo '<script>alert("Invalid image format.");window.location.href = "view_upcoming_event.php";</script>';
+            exit();
+        }
 
-        // Move uploaded file
-        // if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-        //     echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_upcoming_event.php";</script>';
-        //     exit();
-        // }
+        // Move uploaded file to server
+        if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
+            echo '<script>alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_upcoming_event.php";</script>';
+            exit();
+        }
 
-        // Update database record
-        unlink("assets/images/gallery/" . $event_image1);
-        unlink("assets/images/gallery/thumb/" . $event_image1);
-       $sql =("UPDATE tbl_add_upcoming_event SET place1='$place1',event_image1='$file_name' WHERE id='$id'");
+        // Upload file to cloud (assuming UploadApi class and method)
+        try {
+            $cloudUpload = (new UploadApi())->upload($filepath);
+            $cloudinaryUrl = $cloudUpload['secure_url'];
+            // Remove the local file after successful upload
+            unlink($filepath);
+
+            // Update database with new image and place1
+            $sql = "UPDATE tbl_add_upcoming_event SET place1='$place1', event_image1='$cloudinaryUrl' WHERE id='$id'";
+        } catch (Exception $e) {
+            echo 'Cloudinary upload failed: ' . $e->getMessage();
+            exit();
+        }
     } else {
         // Update without changing the image
-        $sql =("UPDATE tbl_add_upcoming_event SET place1='$place1' WHERE id='$id'");
+        $sql = "UPDATE tbl_add_upcoming_event SET place1='$place1' WHERE id='$id'";
     }
 
+    // Execute SQL query
     $result = mysqli_query($con, $sql);
     if ($result) {
-        echo '<script type="text/javascript">alert("Updated successfully.");window.location.href = "view_upcoming_event.php";</script>';
+        echo '<script>alert("Updated successfully.");window.location.href = "view_upcoming_event.php";</script>';
     } else {
-        echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_upcoming_event.php";</script>';
+        echo '<script>alert("Failed to update.");window.location.href = "view_upcoming_event.php";</script>';
     }
-  }
+}
 ?>
+  
 
 
 <script>

@@ -18,7 +18,7 @@ if ($requestMethod === 'GET') {
 
     if ($result_achiver) {
         while ($row = $result_achiver->fetch_assoc()) {
-            $row['user_image'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['user_image'];
+            $row['user_image'] = '' . $row['user_image'];
             $achiver[] = $row;
         }
     } else {
@@ -35,7 +35,7 @@ if ($requestMethod === 'GET') {
         'status' => true,
         'data' => [
             [
-                'club' => 'achiver',
+                'Achiver' => 'achiver',
                 'id' => '1', // Additional information for platinum
                 'members' => $achiver,],
         ]

@@ -17,7 +17,7 @@ if ($requestMethod === 'GET') {
 
     if ($result_trip) {
         while ($row = $result_trip->fetch_assoc()) {
-            $row['trip_image'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['trip_image'];
+            // $row['trip_image'] = '' . $row['trip_image'];
             $trip[] = $row;
         }
     } else {
@@ -33,7 +33,7 @@ if ($requestMethod === 'GET') {
         'status' => true,
         'data' => [
             [
-                'club' => 'trip',
+                'Trip' => 'trip',
                 'id' => '1', // Additional information for platinum
                 'members' => $trip,],
 

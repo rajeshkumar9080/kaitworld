@@ -1,5 +1,21 @@
-<?php include("header.php"); 
+<?php
+include("header.php");
 include('db_config.php');
+require 'vendor/autoload.php';
+
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+Configuration::instance([
+    'cloud' => [
+        'cloud_name' => 'dspp2vqid',
+        'api_key'    => '838937238819565',
+        'api_secret' => 'SOIhazSJm8MEUaov7sMAcBQRlew'
+    ],
+    'url' => [
+        'secure' => true
+    ]
+]);
 ?>
     <!-- This page plugin CSS -->
     <link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
@@ -91,7 +107,7 @@ include('db_config.php');
 						               <td><?php echo $i++;?></td>
                           <td><?php echo $row['user_id'];?></td>
 						  <td><?php echo $row['user_name']; ?></td>
-						   <td  class="pro-list-img"><img src="assets/images/gallery/<?php echo $row["user_image"];?>" style="height: 44px;"></td>
+						   <td  class="pro-list-img"><img src="<?php echo $row["user_image"];?>" style="height: 44px;"></td>
 											
                           <td><?php  $originalDate = $row['registered_date'];  echo $newDate = date("y-m-d", strtotime($originalDate)); ?></td>
                          <td><a class="like" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;
@@ -127,7 +143,7 @@ include('db_config.php');
                               </div>
 							  <div class="col-md-12 mb-3">
                          <label for="image">Photo</label>
-                        <img src="assets/images/gallery/<?php echo $row['user_image'];?>" alt="image"  width="100px" height="100px">
+                        <img src="<?php echo $row['user_image'];?>" alt="image"  width="100px" height="100px">
                       </div>
                       <div class="form-group">
                         <input id="image" class="form-control" name="img_files" type="file">
@@ -324,28 +340,33 @@ if(isset($_POST['submit'] ) ) {
                             $destination = $upload_dir . $file_name;
                           
                             if (move_uploaded_file($_FILES["user_image"]["tmp_name"], $destination)) {
+                              try {
+                                $cloudUpload = (new UploadApi())->upload($destination);
+                                $cloudinaryUrl = $cloudUpload['secure_url'];
 
-                            echo  $sql_query ="INSERT INTO  tbl_add_kait_king (user_id,user_name,user_image,registered_date)VALUES ('$user_id','$user_name','$filename','$registered_date')";
+                             $sql_query ="INSERT INTO  tbl_add_kait_king (user_id,user_name,user_image,registered_date)VALUES ('$user_id','$user_name','$cloudinaryUrl','$registered_date')";
                               $query = mysqli_query($con,$sql_query); 
-                              // $result = mysqli_num_rows($query);
-                              if ($query) { 
-                                // file uplaoded successfully.
-                        echo '<script type="text/javascript">alert("Insert Sucessfully");
-                               window.location.href = "view_kait_king.php";</script>';
-                              }else{
-                                // failed to insert into database.
-                        echo '<script type="text/javascript">alert("Failed to upload <strong>"' . $filename . '"</strong>");
-                               window.location.href = "view_kait_king.php";</script>';
-                              
-                            
-                            /*             * ****** insert into database ends ******** */
-                          }
-                        } 
-                     }
-                      }
-                  } 
-                
-                ?>
+
+                              if ($query) {
+                                echo '<script type="text/javascript">alert("Insert Successfully"); window.location.href = "view_contest.php";</script>';
+                            } else {
+                                echo '<script type="text/javascript">alert("Failed to insert into database"); window.location.href = "view_contest.php";</script>';
+                            }
+                        } catch (Exception $e) {
+                            echo 'Cloudinary upload failed: ' . $e->getMessage();
+                        }
+                    } else {
+                        echo '<script type="text/javascript">alert("Failed to move uploaded file"); window.location.href = "view_contest.php";</script>';
+                    }
+                }
+                //  else {
+                //     echo '<script type="text/javascript">alert("File size exceeds the limit of 5 MB"); window.location.href = "view_contest.php";</script>';
+                // }
+            } else {
+                echo '<script type="text/javascript">alert("Invalid file type"); window.location.href = "view_contest.php";</script>';
+            }
+          }
+          ?>
    
 <?php error_reporting(0);
 if ($_POST["delete"])
@@ -387,20 +408,27 @@ if (isset($_POST['update'])) {
 
         if (!in_array($image_mime, $valid_image_check)) {
             echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_kait_king.php";</script>';
-            exit();
+            // exit();
         }
         
         // Move uploaded file
         if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
             echo '<script type="text/javascript">alert("Failed to upload '. $_FILES["img_files"]["name"] . '");window.location.href = "view_kait_king.php";</script>';
-            exit();
+            // exit();
         }
+        try {
+          $cloudUpload = (new UploadApi())->upload($filepath);
+          $cloudinaryUrl = $cloudUpload['secure_url'];
 
-        // Update database record
-        unlink("assets/images/gallery/" . $user_image);
-        unlink("assets/images/gallery/thumb/" . $user_image);
-    echo $sql ="UPDATE tbl_add_kait_king SET user_id='$user_id',user_name='$user_name',user_image='$file_name' WHERE id='$id'";
-    } else {
+          // Remove the local file after successful upload
+          unlink($filepath);
+
+    echo $sql ="UPDATE tbl_add_kait_king SET user_id='$user_id',user_name='$user_name',user_image='$cloudinaryUrl' WHERE id='$id'";
+    } catch (Exception $e) {
+      echo 'Cloudinary upload failed: ' . $e->getMessage();
+      exit();
+  }
+ } else {
         // Update without changing the image
   echo $sql ="UPDATE tbl_add_kait_king SET user_id='$user_id',user_name='$user_name' WHERE id='$id'";
     }

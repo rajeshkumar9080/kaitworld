@@ -1,6 +1,24 @@
-<?php include("header.php"); ?>
-    <!-- This page plugin CSS -->
-    <link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
+<?php
+include("header.php");
+include('db_config.php');
+require 'vendor/autoload.php';
+
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+Configuration::instance([
+    'cloud' => [
+        'cloud_name' => 'dspp2vqid',
+        'api_key'    => '838937238819565',
+        'api_secret' => 'SOIhazSJm8MEUaov7sMAcBQRlew'
+    ],
+    'url' => [
+        'secure' => true
+    ]
+]);
+?>
+
+<link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
 <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
       <!-- -------------------------------------------------------------- -->
       <!-- End Left Sidebar - style you can find in sidebar.scss  -->
@@ -89,7 +107,7 @@
 						  <td><?php echo $i++;?></td>
 						   <td><?php echo $row['title'];?></td>
 					       <td><?php echo $row['content']; ?></td>
-						   <td  class="pro-list-img"><img src="assets/images/gallery/<?php echo $row['trip_image'];?>" style="height: 44px;"></td>
+						   <td  class="pro-list-img"><img src="<?php echo $row['trip_image'];?>" style="height: 44px;"></td>
 											
                           <td><?php $originalDate = $row['register_date'];  echo $newDate = date("d-m-Y", strtotime($originalDate)); ?></td>
                           <td><a class="like" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;
@@ -121,18 +139,12 @@
                            
                               </div>
 							  
-                              <!-- <div class="col-md-12 mb-3">
-                                <input type="text" class="form-control" name="blog_posted_by" required placeholder="Posted by" value="<?php echo $rowresultl['blog_posted_by'];?>"/>
-                              </div> 
-							  <div class="col-md-12 mb-3">
-                                <input type="date" class="form-control" name="blog_posted_date" required placeholder="Posted date" value="<?php echo $rowresultl['blog_posted_date'];?>"/>
-                               </div>  -->
 							  <div class="col-md-12 mb-3">         
                          <label for="image">Photo</label>
-                        <img src="assets/images/gallery/<?php echo $row['trip_image'];?>" alt="image" width="100px" height="100px">
+                        <img src="<?php echo $row['trip_image'];?>" alt="image" width="100px" height="100px">
                       </div>
                       <div class="form-group">      
-                        <input id="image" class="form-control" name="trip_image" type="file">
+                        <input id="image" class="form-control" name="img_files" type="file">
                       </div>
                       
 							  <input type="hidden" value="<?php echo $row['id'];?>" name="id">
@@ -229,7 +241,7 @@
 							<div class="col-md-12">
 							<div class="col-md-12 mb-3">
 											<label for="validationCustom03" class="form-label">Image</label>
-											<input type="file" class="form-control" id="validationCustom03" required name="trip_image">
+											<input type="file" class="form-control" id="validationCustom03" required="" name="trip_image">
 										</div>
 										</div>
                         <div class="modal-footer">
@@ -320,35 +332,43 @@ if(isset($_POST['save_user']))
 									  $trip_image=$_FILES["trip_image"]["name"];
 
                     $valid_image_check = array("image/gif","image/jpeg","image/jpg","image/png","image/bmp");
-     if (count($_FILES["trip_image"]) > 0) 
-    $folderName = "assets/images/gallery/";
-      //  if ($_FILES["trip_image"]["name"] <> "") 
 
-        //  $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["trip_image"]["tmp_name"])));
-		//size set
-		// $image_info = getimagesize($_FILES["trip_image"]["tmp_name"]);
-		// $image_width = $image_info[0];  
-		// $image_height = $image_info[1];
-		//  if ($image_width >= 480 || $image_height >= 260) 
-       
-    
+                    if (in_array($_FILES["trip_image"]["type"], $valid_image_check)) {
+                      // Validate file size
+                      if ($_FILES["trip_image"]) {
+                          // Move the uploaded file to the desired directory
+                          $upload_dir = "assets/images/gallery/";
+                          $file_name = basename($_FILES["trip_image"]["name"]);
+                          $destination = $upload_dir . $file_name;
+                          
+                          if (move_uploaded_file($_FILES["trip_image"]["tmp_name"], $destination)) {
+                              // Upload the image to Cloudinary
+                              try {
+                                  $cloudUpload = (new UploadApi())->upload($destination);
+                                  $cloudinaryUrl = $cloudUpload['secure_url'];
+                     $sql_query ="INSERT INTO tbl_add_trip (title,content,trip_image,register_date) VALUES ('$title','$content','$cloudinaryUrl','$register_date')";
+                     $query = mysqli_query($con, $sql_query);
 
-         move_uploaded_file($_FILES["trip_image"]["tmp_name"],"assets/images/gallery/".$_FILES["trip_image"]["name"]);
-          {
-            // $emsg .= "Failed to upload <strong>" . $_FILES["trip_image"]["name"] . "</strong>. <br>";
-            // $counter++;
-                     echo $sql ="INSERT INTO tbl_add_trip (title,content,trip_image,register_date) VALUES ('$title','$content','$trip_image','$register_date')";
-									  if (mysqli_query($con, $sql)) 
-									  {
-                      echo'<script type="text/javascript">alert("insert sucessfully");window.location.href = "view_trips.php";</script>';
-
-									  }
-									  else {
-									    echo "<script>alert('Failed to upload image.');</script>";
-									  }
-									}
-                }
-									?>
+									  if ($query) {
+                      echo '<script type="text/javascript">alert("Insert Successfully"); window.location.href = "view_trips.php";</script>';
+                  } else {
+                      echo '<script type="text/javascript">alert("Failed to insert into database"); window.location.href = "view_trips.php";</script>';
+                  }
+              } catch (Exception $e) {
+                  echo 'Cloudinary upload failed: ' . $e->getMessage();
+              }
+          } else {
+              echo '<script type="text/javascript">alert("Failed to move uploaded file"); window.location.href = "view_trips.php";</script>';
+          }
+      }
+      //  else {
+      //     echo '<script type="text/javascript">alert("File size exceeds the limit of 5 MB"); window.location.href = "view_trips.php";</script>';
+      // }
+  } else {
+      echo '<script type="text/javascript">alert("Invalid file type"); window.location.href = "view_trips.php";</script>';
+  }
+}
+?>
 
 
 <?php error_reporting(0);
@@ -370,10 +390,8 @@ if ($_POST["delete"])
 
 <?php
 if (isset($_POST['update'])) {
-    // Assuming $con is your database connection object and $id is the ID of the record to update
-
     // Sanitize and retrieve form data
-    // $id = mysqli_real_escape_string($con, $_POST['id']);
+    $id = mysqli_real_escape_string($con, $_POST['id']);
     $title = mysqli_real_escape_string($con, $_POST['title']);
     $content = mysqli_real_escape_string($con, $_POST['content']);
     $trip_image = mysqli_real_escape_string($con, $_POST['trip_image']);
@@ -388,40 +406,45 @@ if (isset($_POST['update'])) {
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
 
         if (!in_array($image_mime, $valid_image_check)) {
-            // echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_trips.php";</script>';
+            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_trips.php";</script>';
             // exit();
         }
 
-        // Move uploaded file
+        // Move uploaded file to temporary location
         if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-             echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_trips.php";</script>';
+            echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_trips.php";</script>';
             // exit();
         }
 
-      // Update database record
-      unlink("assets/images/gallery/" . $trip_image);
-      unlink("assets/images/gallery/thumb/" . $trip_image);
-   $sql ="UPDATE tbl_add_trip SET title='$title',content='$content',trip_image='$file_name' WHERE id='$id'";
-  } else {
-      // Update without changing the image
- $sql ="UPDATE tbl_add_trip SET title='$title',content='$content' WHERE id='$id'";
-  }
+        // Upload the image to Cloudinary
+        try {
+            $cloudUpload = (new UploadApi())->upload($filepath);
+            $cloudinaryUrl = $cloudUpload['secure_url'];
 
-  $result = mysqli_query($con, $sql);
-  if ($result) {
-      echo '<script type="text/javascript">alert("Updated successfully.");window.location.href = "view_trips.php";</script>';
-  } else {
-      echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_trips.php";</script>';
-  }
+            // Remove the local file after successful upload
+            unlink($filepath);
+
+            // Update database record with Cloudinary URL
+            $sql = "UPDATE tbl_add_trip SET title='$title', content='$content', trip_image='$cloudinaryUrl' WHERE id='$id'";
+        } catch (Exception $e) {
+            echo 'Cloudinary upload failed: ' . $e->getMessage();
+            exit();
+        }
+    } else {
+        // Update without changing the image
+        $sql = "UPDATE tbl_add_trip SET title='$title', content='$content' WHERE id='$id'";
+    }
+
+    $result = mysqli_query($con, $sql);
+    if ($result) {
+        echo '<script type="text/javascript">alert("Updated successfully.");window.location.href = "view_trips.php";</script>';
+    } else {
+        echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_trips.php";</script>';
+    }
 }
 ?>
-
-
-
 <script>
 CKEDITOR.replaceClass = 'editor';
 
     // CKEDITOR.replace( 'product_desc' );
-</script> 
-
-
+</script>

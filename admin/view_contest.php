@@ -1,6 +1,23 @@
-<?php include("header.php");
+<?php
+include("header.php");
 include('db_config.php');
- ?>
+require 'vendor/autoload.php';
+
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+Configuration::instance([
+    'cloud' => [
+        'cloud_name' => 'dspp2vqid',
+        'api_key'    => '838937238819565',
+        'api_secret' => 'SOIhazSJm8MEUaov7sMAcBQRlew'
+    ],
+    'url' => [
+        'secure' => true
+    ]
+]);
+?>
+
     <!-- This page plugin CSS -->
     <link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
 <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
@@ -91,17 +108,17 @@ include('db_config.php');
 						              <td><?php echo $i++;?></td>
                           <td><?php echo $row['title'];?></td>
 						    <td><?php echo $row['content'];?></td>
-						   <td  class="pro-list-img"><img src="assets/images/gallery/<?php echo $row['image'];?>" style="height: 44px;"></td>
+						   <td  class="pro-list-img"><img src="<?php echo $row['image'];?>" style="height: 44px;"></td>
 
-                          <td><?php  $originalDate = $row['registered_date'];  echo $newDate = date("d-m-Y", strtotime($originalDate)); ?></td>
-                         <td><a class="like" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;
-						  <a class="remove text-danger" data-bs-toggle="modal" data-bs-target="#del<?php echo $row['id'];?>" title="Remove"><i class="ti-trash"></i></a></td>
+                          <td><?php  $originalDate = $row['registered_date'];  echo $newDate = date("d-m-Y", strtotime($originalDate)); ?></td>   
+                         <td><a class="like" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;   
+						  <a class="remove text-danger" data-bs-toggle="modal" data-bs-target="#del<?php echo $row['id'];?>" title="Remove"><i class="ti-trash"></i></a></td>   
                         </tr>
 						<!-- Add Contact Popup Model -->
                   <div id="edit-contact<?php echo $row['id'];?>" class="modal fade in" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
                     aria-hidden="true">
                     <?php 
-						$so_id=$row['id'];
+						$id=$row['id'];
 						$exe="SELECT * FROM tbl_add_contest where id='$id' ";
 						$exe_result=mysqli_query($con,$exe);
 						$rowresult = mysqli_fetch_array($exe_result);
@@ -125,7 +142,7 @@ include('db_config.php');
                               </div>
 							  <div class="col-md-12 mb-3">
                          <label for="image">Photo</label>
-                        <img src="assets/images/gallery/<?php echo $row['image'];?>" alt="image"  width="100px" height="100px">
+                        <img src="<?php echo $row['image'];?>" alt="image"  width="100px" height="100px">
                       </div>
                       <div class="form-group">
                         <input id="image" class="form-control" name="img_files" type="file">
@@ -152,23 +169,23 @@ include('db_config.php');
 					  <div class="modal-header">
 						<h5 class="modal-title" id="exampleModalLabel">Delete Country</h5>
 						<button type="button" class="close ms-auto" data-bs-dismiss="modal" aria-hidden="true">×</button>
-					  </div>
+					  </div>       
+
 					<?php 
 						$id=$row['id'];
 						$execution="SELECT * FROM tbl_add_contest where id='$id' ";
 						$exe_results=mysqli_query($con,$execution);
-						$rowresults = mysqli_fetch_array($exe_results);
+						$rowresults = mysqli_fetch_array($exe_results);        
 						?>
 					  <form method="post">
-					  <input type="hidden" value="<?php echo $rowresult['image'];?>" name="image" >
+					  <input type="hidden" value="<?php echo $rowresult['image'];?>" name="image" >    
 					  <div class="modal-body">
 						<div class="alert alert-danger"><span class="icon-warning"></span> Are you sure you want to delete this Record?</div>
-						<input type="hidden" name="id" value="<?php echo $rowresults['id'];?>">
+						<input type="hidden" name="id" value="<?php echo $rowresults['id'];?>"> 
 					  </div>
 					  <div class="modal-footer">
 						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-						<input type="submit"  name="delete" class="btn btn-primary" value="Delete"> 
-					  </div>
+						<input type="submit"  name="delete" class="btn btn-primary" value="Delete">     
 					  </form>
 					</div>
 				  </div>
@@ -228,12 +245,6 @@ include('db_config.php');
                     </div>
                     <!-- /.modal-dialog -->
                   </div>
-          
-          
-          
-         
-          
-          
           
           <!-- -------------------------------------------------------------- -->
           <!-- End PAge Content -->
@@ -298,70 +309,59 @@ include('db_config.php');
 </html>
 
 <?php 
-if(isset($_POST['submit'] ) ) {
-	$title=$_POST['title'];
-	$content=$_POST['content'];
-  $registered_date= date('Y-m-d'); 
+if (isset($_POST['submit'])) {
+  $title = $_POST['title'];
+  $content = $_POST['content'];
+  $registered_date = date('Y-m-d');
   $filename = $_FILES["image"]["name"];
   
-	  //  require_once('./php-image-magician/php_image_magician.php');
-    
-      $allowed_types = array("image/jpeg","image/png","image/gif","image/bmp","image/gif");
-      $max_size = 5 * 1024 * 1024; // 5 MB
-    
-      // Validate file type
-      if (in_array($_FILES["image"]["type"], $allowed_types)) {
-          // Validate file size
-          if ($_FILES["image"]["size"] <= $max_size) {
-              // Move the uploaded file to the desired directory
-              $upload_dir = "assets/images/gallery/";
-              $file_name = basename($_FILES["image"]["name"]);
-              $destination = $upload_dir . $file_name;
-            
-              if (move_uploaded_file($_FILES["image"]["tmp_name"], $destination)) {
-            
-        // if valid image type then upload
-        // if (in_array($image_mime, $valid_image_check)) {
+  $allowed_types = array("image/jpeg", "image/png", "image/gif", "image/bmp", "image/gif");
+  $max_size = 5 * 1024 * 1024; // 5 MB
+  
+  // Validate file type
+  if (in_array($_FILES["image"]["type"], $allowed_types)) {
+      // Validate file size
+      if ($_FILES["image"]["size"] <= $max_size) {
+          // Move the uploaded file to the desired directory
+          $upload_dir = "assets/images/gallery/";
+          $file_name = basename($_FILES["image"]["name"]);
+          $destination = $upload_dir . $file_name;
+          
+          if (move_uploaded_file($_FILES["image"]["tmp_name"], $destination)) {
+              // Upload the image to Cloudinary
+              try {
+                  $cloudUpload = (new UploadApi())->upload($destination);
+                  $cloudinaryUrl = $cloudUpload['secure_url'];
 
-        //   $ext = explode("/", strtolower($image_mime));
-        //   $ext = strtolower(end($ext));
-        //   $filename = rand(20000, 990000) . '_' . time() . '.' . $ext;
-        //   $filepath = $folderName . $filename;
-
-        
-            // $smsg .= "<strong>" . $_FILES["up_image"]["name"] . "</strong> uploaded successfully. <br>";
-
-            // // $magicianObj = new imageLib($filepath);
-            // $magicianObj->resizeImage(280, 160);
-            // $magicianObj->saveImage($folderName . 'thumb/' . $filename, 9);
-
-           
-       echo $sql_query ="INSERT INTO tbl_add_contest (title,content,image,registered_date)VALUES ('$title','$content','$filename','$registered_date')";
-              $query = mysqli_query($con,$sql_query); 
-              // $result = mysqli_num_rows($query);
-              if ($query) {
-                // file uplaoded successfully.
-				echo '<script type="text/javascript">alert("Insert Sucessfully");
-               window.location.href = "view_contest.php";</script>';
-              }else{
-                // failed to insert into database.
-				echo '<script type="text/javascript">alert("Failed to upload <strong>"' . $filename . '"</strong>");
-               window.location.href = "view_contest.php";</script>';
-              
-            
-            /*             * ****** insert into database ends ******** */
+                  // Insert into database
+                  $sql_query = "INSERT INTO tbl_add_contest (title, content, image, registered_date) VALUES ('$title', '$content', '$cloudinaryUrl', '$registered_date')";
+                  $query = mysqli_query($con, $sql_query);
+                  
+                  if ($query) {
+                      echo '<script type="text/javascript">alert("Insert Successfully"); window.location.href = "view_contest.php";</script>';
+                  } else {
+                      echo '<script type="text/javascript">alert("Failed to insert into database"); window.location.href = "view_contest.php";</script>';
+                  }
+              } catch (Exception $e) {
+                  echo 'Cloudinary upload failed: ' . $e->getMessage();
+              }
+          } else {
+              echo '<script type="text/javascript">alert("Failed to move uploaded file"); window.location.href = "view_contest.php";</script>';
           }
-        } 
-	   }
       }
-  } 
-
+      //  else {
+      //     echo '<script type="text/javascript">alert("File size exceeds the limit of 5 MB"); window.location.href = "view_contest.php";</script>';
+      // }
+  } else {
+      echo '<script type="text/javascript">alert("Invalid file type"); window.location.href = "view_contest.php";</script>';
+  }
+}
 ?>
 
 <?php error_reporting(0);
 if ($_POST["delete"])
 {
-		$so_id=$_POST['so_id'];
+		$id=$_POST['id'];
 		$user_image=$_POST['image'];
 	 unlink("assets/images/gallery/".$image);
 	 unlink("assets/images/gallery/thumb/".$image);
@@ -374,11 +374,8 @@ if ($_POST["delete"])
 }
 		?>
 		
-		
-    <?php
-if (isset($_POST['update'])) {
-    // Assuming $con is your database connection object and $id is the ID of the record to update
-
+		<?php
+    if (isset($_POST['update'])) {
     // Sanitize and retrieve form data
     $id = mysqli_real_escape_string($con, $_POST['id']);
     $title = mysqli_real_escape_string($con, $_POST['title']);
@@ -395,23 +392,32 @@ if (isset($_POST['update'])) {
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
 
         if (!in_array($image_mime, $valid_image_check)) {
-            // echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_contest.php";</script>';
+            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_contest.php";</script>';
             // exit();
         }
 
-        // Move uploaded file
+        // Move uploaded file to temporary location
         if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-            // echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_contest.php";</script>';
+            echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_contest.php";</script>';
             // exit();
         }
+        // Upload the image to Cloudinary
+        try {
+            $cloudUpload = (new UploadApi())->upload($filepath);
+            $cloudinaryUrl = $cloudUpload['secure_url'];
 
-        // Update database record
-        unlink("assets/images/gallery/" . $user_image);
-        unlink("assets/images/gallery/thumb/" . $user_image);
-      echo $sql =("UPDATE `tbl_add_contest` SET title='$title',content='$content',image='$file_name' WHERE id='$id'");
+            // Remove the local file after successful upload
+            unlink($filepath);
+
+            // Update database record with Cloudinary URL
+            $sql = "UPDATE `tbl_add_contest` SET title='$title', content='$content', image='$cloudinaryUrl' WHERE id='$id'";
+        } catch (Exception $e) {
+            echo 'Cloudinary upload failed: ' . $e->getMessage();
+            exit();
+        }
     } else {
         // Update without changing the image
-        $sql =("UPDATE `tbl_add_contest` SET title='$title',content='$content' WHERE id='$id'");
+        $sql = "UPDATE `tbl_add_contest` SET title='$title', content='$content' WHERE id='$id'";
     }
 
     $result = mysqli_query($con, $sql);
@@ -420,9 +426,8 @@ if (isset($_POST['update'])) {
     } else {
         echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_contest.php";</script>';
     }
-  }
+}
 ?>
-
 <script>
 CKEDITOR.replaceClass = 'editor';
 

@@ -1,6 +1,22 @@
-<?php include("header.php");
+<?php
+include("header.php");
 include('db_config.php');
- ?>
+require 'vendor/autoload.php';
+
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+Configuration::instance([
+    'cloud' => [
+        'cloud_name' => 'dspp2vqid',
+        'api_key'    => '838937238819565',
+        'api_secret' => 'SOIhazSJm8MEUaov7sMAcBQRlew'
+    ],
+    'url' => [
+        'secure' => true
+    ]
+]);
+?>
     <!-- This page plugin CSS -->
     <link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
 <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
@@ -91,7 +107,7 @@ include('db_config.php');
 						              <td><?php echo $i++;?></td>
                           <td><?php echo $row['title'];?></td>
 						    <td><?php echo $row['content'];?></td>
-						   <td  class="pro-list-img"><img src="assets/images/gallery/<?php echo $row['image'];?>" style="height: 44px;"></td>
+						   <td  class="pro-list-img"><img src="<?php echo $row['image'];?>" style="height: 44px;"></td>
 
                           <td><?php  $originalDate = $row['registered_date'];  echo $newDate = date("d-m-Y", strtotime($originalDate)); ?></td>
                          <td><a class="like" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;
@@ -125,7 +141,7 @@ include('db_config.php');
                               </div>
 							  <div class="col-md-12 mb-3">
                          <label for="image">Photo</label>
-                        <img src="assets/images/gallery/<?php echo $row['image'];?>" alt="image"  width="100px" height="100px">
+                        <img src="<?php echo $row['image'];?>" alt="image"  width="100px" height="100px">
                       </div>
                       <div class="form-group">
                         <input id="image" class="form-control" name="img_files" type="file">
@@ -319,7 +335,9 @@ if(isset($_POST['submit'] ) ) {
               $destination = $upload_dir . $file_name;
             
               if (move_uploaded_file($_FILES["image"]["tmp_name"], $destination)) {
-            
+                try {
+                  $cloudUpload = (new UploadApi())->upload($destination);
+                  $cloudinaryUrl = $cloudUpload['secure_url'];
         // if valid image type then upload
         // if (in_array($image_mime, $valid_image_check)) {
 
@@ -336,26 +354,28 @@ if(isset($_POST['submit'] ) ) {
             // $magicianObj->saveImage($folderName . 'thumb/' . $filename, 9);
 
            
-       echo $sql_query ="INSERT INTO tbl_add_home (title,content,image,registered_date)VALUES ('$title','$content','$filename','$registered_date')";
+       $sql_query ="INSERT INTO tbl_add_home (title,content,image,registered_date)VALUES ('$title','$content','$cloudinaryUrl','$registered_date')";
               $query = mysqli_query($con,$sql_query); 
-              // $result = mysqli_num_rows($query);
-              if ($query) {
-                // file uplaoded successfully.
-				echo '<script type="text/javascript">alert("Insert Sucessfully");
-               window.location.href = "view_home.php";</script>';
-              }else{
-                // failed to insert into database.
-				echo '<script type="text/javascript">alert("Failed to upload <strong>"' . $filename . '"</strong>");
-               window.location.href = "view_home.php";</script>';
-              
-            
-            /*             * ****** insert into database ends ******** */
-          }
-        } 
-	   }
-      }
-  } 
 
+              if ($query) {
+                echo '<script type="text/javascript">alert("Insert Successfully"); window.location.href = "view_home.php";</script>';
+            } else {
+                echo '<script type="text/javascript">alert("Failed to insert into database"); window.location.href = "view_home.php";</script>';
+            }
+        } catch (Exception $e) {
+            echo 'Cloudinary upload failed: ' . $e->getMessage();
+        }
+    } else {
+        echo '<script type="text/javascript">alert("Failed to move uploaded file"); window.location.href = "view_home.php";</script>';
+    }
+}
+//  else {
+//     echo '<script type="text/javascript">alert("File size exceeds the limit of 5 MB"); window.location.href = "view_home.php";</script>';
+// }
+} else {
+echo '<script type="text/javascript">alert("Invalid file type"); window.location.href = "view_home.php";</script>';
+}
+}
 ?>
 
 <?php error_reporting(0);
@@ -383,7 +403,6 @@ if (isset($_POST['update'])) {
     $id = mysqli_real_escape_string($con, $_POST['id']);
     $title = mysqli_real_escape_string($con, $_POST['title']);
     $content = mysqli_real_escape_string($con, $_POST['content']);
-    $image = mysqli_real_escape_string($con, $_POST['image']);
     $file_name = $_FILES["img_files"]["name"];
 
     // Validate file upload
@@ -394,24 +413,32 @@ if (isset($_POST['update'])) {
         $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
 
-         if (!in_array($image_mime, $valid_image_check)) {
-        //     echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_home.php";</script>';
-        //     exit();
-         }
+        if (!in_array($image_mime, $valid_image_check)) {
+            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_home.php";</script>';
+            exit();
+        }
 
         // Move uploaded file
-     if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-        //     echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_home.php";</script>';
-        //     exit();
-         }
+        if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
+            echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_home.php";</script>';
+            exit();
+        }
 
-        // Update database record
-        unlink("assets/images/gallery/" . $user_image);
-        unlink("assets/images/gallery/thumb/" . $user_image);
-      echo $sql =("UPDATE `tbl_add_home` SET title='$title',content='$content',image='$file_name' WHERE id='$id'");
+        try {
+            $cloudUpload = (new UploadApi())->upload($filepath);
+            $cloudinaryUrl = $cloudUpload['secure_url'];
+
+            // Remove the local file after successful upload
+            unlink($filepath);
+
+            $sql = "UPDATE `tbl_add_home` SET title='$title', content='$content', image='$cloudinaryUrl' WHERE id='$id'";
+        } catch (Exception $e) {
+            echo 'Cloudinary upload failed: ' . $e->getMessage();
+            exit();
+        }
     } else {
         // Update without changing the image
-        $sql =("UPDATE `tbl_add_home` SET title='$title',content='$content' WHERE id='$id'");
+        $sql = "UPDATE `tbl_add_home` SET title='$title', content='$content' WHERE id='$id'";
     }
 
     $result = mysqli_query($con, $sql);
@@ -420,7 +447,7 @@ if (isset($_POST['update'])) {
     } else {
         echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_home.php";</script>';
     }
-  }
+}
 ?>
 
 <script>

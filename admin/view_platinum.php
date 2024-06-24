@@ -1,5 +1,21 @@
-<?php include("header.php"); 
+<?php
+include("header.php");
 include('db_config.php');
+require 'vendor/autoload.php';
+
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+Configuration::instance([
+    'cloud' => [
+        'cloud_name' => 'dspp2vqid',
+        'api_key'    => '838937238819565',
+        'api_secret' => 'SOIhazSJm8MEUaov7sMAcBQRlew'
+    ],
+    'url' => [
+        'secure' => true
+    ]
+]);
 ?>
     <!-- This page plugin CSS -->
     <link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
@@ -91,7 +107,7 @@ include('db_config.php');
 						               <td><?php echo $i++;?></td>
                           <td><?php echo $row['user_id'];?></td>
 						  <td><?php echo $row['user_name']; ?></td>
-						   <td  class="pro-list-img"><img src="assets/images/gallery/<?php echo $row["user_image"];?>" style="height: 44px;"></td>
+						   <td  class="pro-list-img"><img src="<?php echo $row["user_image"];?>" style="height: 44px;"></td>
 											
                           <td><?php  $originalDate = $row['registered_date'];  echo $newDate = date("y-m-d", strtotime($originalDate)); ?></td>
                          <td><a class="like" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;
@@ -127,7 +143,7 @@ include('db_config.php');
                               </div>
 							  <div class="col-md-12 mb-3">
                          <label for="image">Photo</label>
-                        <img src="assets/images/gallery/<?php echo $row['user_image'];?>" alt="image"  width="100px" height="100px">
+                        <img src="<?php echo $row['user_image'];?>" alt="image"  width="100px" height="100px">
                       </div>
                       <div class="form-group">
                         <input id="image" class="form-control" name="img_files" type="file">
@@ -305,49 +321,57 @@ include('db_config.php');
   </body>
 </html>
 
-<?php 
-if(isset($_POST['submit'] ) ) {
-	$user_id=$_POST['user_id'];
-	// $user_email_id=$_POST['user_email_id'];
-  $user_name=$_POST['user_name'];
-  $registered_date= date('Y-m-d'); 
-  $filename = $_FILES["user_image"]["name"];
+<?php
+if (isset($_POST['submit'])) {
+    $user_id = mysqli_real_escape_string($con, $_POST['user_id']);
+    $user_name = mysqli_real_escape_string($con, $_POST['user_name']);
+    $registered_date = date('Y-m-d');
+    $filename = $_FILES["user_image"]["name"];
+    $tmp_name = $_FILES["user_image"]["tmp_name"];
+    $file_type = $_FILES["user_image"]["type"];
+    $file_size = $_FILES["user_image"]["size"];
 
-                    $allowed_types = array("image/jpeg","image/png","image/gif","image/bmp","image/gif");
-                    $max_size = 5 * 1024 * 1024; // 5 MB
-                  
-                    // Validate file type
-                    if (in_array($_FILES["user_image"]["type"], $allowed_types)) {
-                        // Validate file size
-                        if ($_FILES["user_image"]["size"] <= $max_size) {
-                            // Move the uploaded file to the desired directory
-                            $upload_dir = "assets/images/gallery/";
-                            $file_name = basename($_FILES["user_image"]["name"]);
-                            $destination = $upload_dir . $file_name;
-                          
-                            if (move_uploaded_file($_FILES["user_image"]["tmp_name"], $destination)) {
+    $allowed_types = array("image/jpeg", "image/png", "image/gif", "image/bmp");
+    $max_size = 5 * 1024 * 1024; // 5 MB
 
-                            echo  $sql_query ="INSERT INTO tbl_add_platinum (user_id,user_name,user_image,registered_date)VALUES ('$user_id','$user_name','$filename','$registered_date')";
-                              $query = mysqli_query($con,$sql_query); 
-                              // $result = mysqli_num_rows($query);
-                              if ($query) { 
-                                // file uplaoded successfully.
-                        echo '<script type="text/javascript">alert("Insert Sucessfully");
-                               window.location.href = "view_platinum.php";</script>';
-                              }else{
-                                // failed to insert into database.
-                        echo '<script type="text/javascript">alert("Failed to upload <strong>"' . $filename . '"</strong>");
-                               window.location.href = "view_platinum.php";</script>';
-                              
-                            
-                            /*             * ****** insert into database ends ******** */
-                          }
-                        } 
-                     }
-                      }
-                  } 
-                
-                ?>
+    // Validate file type
+    if (in_array($file_type, $allowed_types)) {
+        // Validate file size
+        if ($file_size <= $max_size) {
+            // Move the uploaded file to the desired directory
+            $upload_dir = "assets/images/gallery/";
+            $destination = $upload_dir . basename($filename);
+
+            if (move_uploaded_file($tmp_name, $destination)) {
+                try {
+                    // Upload the image to Cloudinary
+                    $cloudUpload = (new UploadApi())->upload($destination);
+                    $cloudinaryUrl = $cloudUpload['secure_url'];
+
+                    // Insert into database
+                    $sql_query = "INSERT INTO tbl_add_platinum (user_id, user_name, user_image, registered_date) VALUES ('$user_id', '$user_name', '$cloudinaryUrl', '$registered_date')";
+                    $query = mysqli_query($con, $sql_query);
+
+                    if ($query) {
+                        echo '<script type="text/javascript">alert("Insert Successfully"); window.location.href = "view_platinum.php";</script>';
+                    } else {
+                        echo '<script type="text/javascript">alert("Failed to insert into database"); window.location.href = "view_platinum.php";</script>';
+                    }
+                } catch (Exception $e) {
+                    echo 'Cloudinary upload failed: ' . $e->getMessage();
+                }
+            } else {
+                echo '<script type="text/javascript">alert("Failed to move uploaded file"); window.location.href = "view_platinum.php";</script>';
+            }
+        } else {
+            echo '<script type="text/javascript">alert("File size exceeds the limit of 5 MB"); window.location.href = "view_platinum.php";</script>';
+        }
+    } else {
+        echo '<script type="text/javascript">alert("Invalid file type"); window.location.href = "view_platinum.php";</script>';
+    }
+}
+?>
+
    
 <?php error_reporting(0);
 if ($_POST["delete"])
@@ -369,51 +393,60 @@ if ($_POST["delete"])
 	
     <?php
 if (isset($_POST['update'])) {
-    // Assuming $con is your database connection object and $id is the ID of the record to update
+  // Sanitize and retrieve form data
+  $id = mysqli_real_escape_string($con, $_POST['id']);
+  $user_id = mysqli_real_escape_string($con, $_POST['user_id']);
+  $user_name = mysqli_real_escape_string($con, $_POST['user_name']);
+  $file_name = $_FILES["img_files"]["name"];
 
-    // Sanitize and retrieve form data
-    $id = mysqli_real_escape_string($con, $_POST['id']);
-    $user_id = mysqli_real_escape_string($con, $_POST['user_id']);
-    // $user_email_id = mysqli_real_escape_string($con, $_POST['user_email_id']);
-    $user_name = mysqli_real_escape_string($con, $_POST['user_name']);
-    $user_image = mysqli_real_escape_string($con, $_POST['user_image']);
-    $file_name = $_FILES["img_files"]["name"];
+  // Check if a new image file is uploaded
+  if (!empty($file_name)) {
+      $folderName = "assets/images/gallery/";
+      $filepath = $folderName . basename($file_name);
+      $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
+      $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
+      
+      // Validate uploaded file type
+      if (in_array($image_mime, $valid_image_check)) {
+          // Move uploaded file to temporary location
+          if (move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
+              try {
+                  // Upload the image to Cloudinary
+                  $cloudUpload = (new UploadApi())->upload($filepath);
+                  $cloudinaryUrl = $cloudUpload['secure_url'];
 
-    // Validate file upload
-    if (!empty($file_name)) {
-        $folderName = "assets/images/gallery/";
-        $filepath = $folderName . basename($file_name);
-        $image_info = getimagesize($_FILES["img_files"]["tmp_name"]);
-        $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
-        $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
+                  // Remove the local file after successful upload to Cloudinary
+                  unlink($filepath);
 
-        if (!in_array($image_mime, $valid_image_check)) {
-            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_platinum.php";</script>';
-            exit();
-        }
-
-        // Move uploaded file
-        if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-            echo '<script type="text/javascript">alert("Failed to upload '. $_FILES["img_files"]["name"] . '");window.location.href = "view_platinum.php";</script>';
-            exit();
-        }
-
-        // Update database record
-        unlink("assets/images/gallery/" . $user_image);
-        unlink("assets/images/gallery/thumb/" . $user_image);
-    echo $sql ="UPDATE tbl_add_platinum SET user_id='$user_id',user_name='$user_name',user_image='$file_name' WHERE id='$id'";
-    } else {
-        // Update without changing the image
-  echo $sql ="UPDATE tbl_add_platinum SET user_id='$user_id',user_name='$user_name' WHERE id='$id'";
-    }
-
-    $result = mysqli_query($con, $sql);
-    if ($result) {
-        echo '<script type="text/javascript">alert("Updated successfully.");window.location.href = "view_platinum.php";</script>';
-    } else {
-        echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_platinum.php";</script>';
-    }
+                  // Update database with the new image URL
+                  $sql = "UPDATE tbl_add_platinum SET user_id='$user_id', user_name='$user_name', user_image='$cloudinaryUrl' WHERE id='$id'";
+              } catch (Exception $e) {
+                  echo 'Cloudinary upload failed: ' . $e->getMessage();
+                  exit();
+              }
+          } else {
+              echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '"); window.location.href = "view_platinum.php";</script>';
+              // exit();
+          }
+      } else {
+          echo '<script type="text/javascript">alert("Invalid image format."); window.location.href = "view_platinum.php";</script>';
+          // exit();
+      }
+  } else {
+      // Update without changing the image
+      $sql = "UPDATE tbl_add_platinum SET user_id='$user_id', user_name='$user_name' WHERE id='$id'";
   }
+
+  // Execute the SQL query
+  $result = mysqli_query($con, $sql);
+  
+  // Check if update was successful
+  if ($result) {
+      echo '<script type="text/javascript">alert("Updated successfully."); window.location.href = "view_platinum.php";</script>';
+  } else {
+      echo '<script type="text/javascript">alert("Failed to update."); window.location.href = "view_platinum.php";</script>';
+  }
+}
 ?>
 
 		

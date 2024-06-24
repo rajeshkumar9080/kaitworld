@@ -1,13 +1,25 @@
-<?php include("header.php"); 
+<?php
+include("header.php");
 include('db_config.php');
+require 'vendor/autoload.php';
+
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+Configuration::instance([
+    'cloud' => [
+        'cloud_name' => 'dspp2vqid',
+        'api_key'    => '838937238819565',
+        'api_secret' => 'SOIhazSJm8MEUaov7sMAcBQRlew'
+    ],
+    'url' => [
+        'secure' => true
+    ]
+]);
 ?>
     <!-- This page plugin CSS -->
     <link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
 <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
-
-
-  
-
 
 <div class="page-wrapper">
         <!-- ============================================================== -->
@@ -71,7 +83,7 @@ include('db_config.php');
 						  <td><?php echo $i++;?></td>
                           <td><?php echo $row['user_id'];?></td>
                           <td><?php echo $row['user_name']; ?></td>
-						   <td  class="pro-list-img"><img src="assets/images/gallery/<?php echo $row['user_image'];?>" style="height: 44px;"></td>
+						   <td  class="pro-list-img"><img src="<?php echo $row['user_image'];?>" style="height: 44px;"></td>
 											
                           <td><?php  $originalDate = $row['registered_date'];  echo $newDate = date("y-m-d", strtotime($originalDate)); ?></td>
                          <td><a class="like" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;
@@ -105,7 +117,7 @@ include('db_config.php');
                               </div>
 							  <div class="col-md-12 mb-3">
                          <label for="image">Photo</label>
-                        <img src="assets/images/gallery/<?php echo $row['user_image'];?>" alt="image"  width="100px" height="100px">
+                        <img src="<?php echo $row['user_image'];?>" alt="image"  width="100px" height="100px">
                       </div>
                       <div class="form-group">
                         <input id="image" class="form-control" name="img_files" type="file">
@@ -267,44 +279,52 @@ include('db_config.php');
   </body>
 
   <?php
-									// session_start();
-									// error_reporting(0);
-									// include "db_config.php";
-									// Uploads files
-									if(isset($_POST['submit'])) 
-                  { 
-                    $user_id=$_POST['user_id'];
-                    $user_name=$_POST['user_name'];
-                    $registered_date= date('Y-m-d'); 
-									  $user_image=$_FILES["user_image"]["name"];
-
-                    $valid_image_check = array("image/gif","image/jpeg","image/jpg","image/png","image/bmp");
-     if (count($_FILES["user_image"]) > 0) 
-    $folderName = "assets/images/gallery/";
-      //  if ($_FILES["user_image"]["name"] <> "") 
-
-        //  $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["user_image"]["tmp_name"])));
-		//size set
-		// $image_info = getimagesize($_FILES["user_image"]["tmp_name"]);
-		// $image_width = $image_info[0];  
-		// $image_height = $image_info[1];
-		// if ($image_width >= 480 || $image_height >= 260) 
-         move_uploaded_file($_FILES["user_image"]["tmp_name"],"assets/images/gallery/".$_FILES["user_image"]["name"]);
-          {
-            // $emsg .= "Failed to upload <strong>" . $_FILES["user_image"]["name"] . "</strong>. <br>";
-            // $counter++;
-                     echo $sql ="INSERT INTO tbl_add_achiveres(user_id,user_name,user_image,registered_date) VALUES ('$user_id','$user_name','$user_image','$registered_date')";
-									  if (mysqli_query($con, $sql)) 
-									  {
-                      echo'<script type="text/javascript">alert("insert sucessfully");window.location.href = "view_achives.php";</script>';
-
-									  }
-									  else {
-									    echo "<script>alert('Failed to upload image.');</script>";
-									  }
-									}
-                }
-									?>
+								if (isset($_POST['submit'])) {
+                  $user_id = $_POST['user_id'];
+                  $user_name = $_POST['user_name'];
+                  $registered_date = date('Y-m-d');
+                  $user_image = $_FILES["user_image"]["name"];
+              
+                  $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
+                  if ($_FILES["user_image"]["name"] != "") {
+                      $folderName = "assets/images/gallery/";
+                      $file_name = basename($_FILES["user_image"]["name"]);
+                      $destination = $folderName . $file_name;
+              
+                      // Validate file type
+                      $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["user_image"]["tmp_name"])));
+                      if (!in_array($image_mime, $valid_image_check)) {
+                          echo '<script type="text/javascript">alert("Invalid file type"); window.location.href = "view_achives.php";</script>';
+                          // exit();
+                      }
+              
+                      // Move the uploaded file to the desired directory
+                      if (move_uploaded_file($_FILES["user_image"]["tmp_name"], $destination)) {
+                          try {
+                              // Upload to Cloudinary
+                              $cloudUpload = (new UploadApi())->upload($destination);
+                              $cloudinaryUrl = $cloudUpload['secure_url'];
+              
+                              // Insert into database
+                              $sql_query = "INSERT INTO tbl_add_achiveres (user_id, user_name, user_image, registered_date) VALUES ('$user_id', '$user_name', '$cloudinaryUrl', '$registered_date')";
+                              $query = mysqli_query($con, $sql_query);
+              
+                              if ($query) {
+                                  echo '<script type="text/javascript">alert("Insert Successfully"); window.location.href = "view_achives.php";</script>';
+                              } else {
+                                  echo '<script type="text/javascript">alert("Failed to insert into database"); window.location.href = "view_achives.php";</script>';
+                              }
+                          } catch (Exception $e) {
+                              echo 'Cloudinary upload failed: ' . $e->getMessage();
+                          }
+                      } else {
+                          echo '<script type="text/javascript">alert("Failed to move uploaded file"); window.location.href = "view_achives.php";</script>';
+                      }
+                  } else {
+                      echo '<script type="text/javascript">alert("Invalid file type"); window.location.href = "view_achives.php";</script>';
+                  }
+              }
+              ?>
    
  <?php error_reporting(0);
 if ($_POST["delete"])
@@ -324,16 +344,15 @@ if ($_POST["delete"])
 		?> 
 		
 		
-    
-    <?php  
-if( isset($_POST['update'] ) ) { 
-  $id=mysqli_real_escape_string($con,$_POST['id']);
- $user_id=mysqli_real_escape_string($con,$_POST['user_id']);
- $user_name=mysqli_real_escape_string($con,$_POST['user_name']);
-  $user_image=mysqli_real_escape_string($con,$_POST['user_image']);
-  $file_name = $_FILES["img_files"]["name"];
+    <?php
+    if (isset($_POST['update'])) {
+    // Sanitize and retrieve form data
+    $id = mysqli_real_escape_string($con, $_POST['id']);
+    $user_id = mysqli_real_escape_string($con, $_POST['user_id']);
+    $user_name = mysqli_real_escape_string($con, $_POST['user_name']);
+    $file_name = $_FILES["img_files"]["name"];
 
-// Validate file upload
+    // Validate file upload
     if (!empty($file_name)) {
         $folderName = "assets/images/gallery/";
         $filepath = $folderName . basename($file_name);
@@ -341,24 +360,34 @@ if( isset($_POST['update'] ) ) {
         $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
 
-        // if (!in_array($image_mime, $valid_image_check)) {
-        //     echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_achives.php";</script>';
-        //     exit();
-        // }
+        if (!in_array($image_mime, $valid_image_check)) {
+            echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_achives.php";</script>';
+            // exit();
+        }
 
         // Move uploaded file
-        // if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-        //     echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_achives.php";</script>';
-        //     exit();
-        // }
+        if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
+            echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_achives.php";</script>';
+            // exit();
+        }
 
-        // Update database record
-        unlink("assets/images/gallery/" . $user_image);
-        unlink("assets/images/gallery/thumb/" . $user_image);
-      echo $sql =("UPDATE `tbl_add_achiveres` SET user_id='$user_id',user_name='$user_name',user_image='$file_name' WHERE id='$id'");
+        // Upload the image to Cloudinary
+        try {
+            $cloudUpload = (new UploadApi())->upload($filepath);
+            $cloudinaryUrl = $cloudUpload['secure_url'];
+
+            // Remove the local file after successful upload
+            unlink($filepath);
+
+            // Update database record with Cloudinary URL
+            $sql = "UPDATE `tbl_add_achiveres` SET user_id='$user_id', user_name='$user_name', user_image='$cloudinaryUrl' WHERE id='$id'";
+        } catch (Exception $e) {
+            echo 'Cloudinary upload failed: ' . $e->getMessage();
+            exit();
+        }
     } else {
         // Update without changing the image
-        $sql =("UPDATE `tbl_add_achiveres` SET user_id='$user_id',user_name='$user_name' WHERE id='$id'");
+        $sql = "UPDATE `tbl_add_achiveres` SET user_id='$user_id', user_name='$user_name' WHERE id='$id'";
     }
 
     $result = mysqli_query($con, $sql);
@@ -367,9 +396,8 @@ if( isset($_POST['update'] ) ) {
     } else {
         echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_achives.php";</script>';
     }
-  }
+}
 ?>
-
 
 <script>
 CKEDITOR.replaceClass = 'editor';

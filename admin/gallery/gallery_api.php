@@ -20,7 +20,7 @@ switch ($requestMethod) {
 
         if ($result_image) {
             while ($row = $result_image->fetch_assoc()) {
-                $row['user_image'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['user_image'];
+                $row['src'] = '' . $row['user_image'];
                 $image[] = $row;
             }
         } else {
@@ -38,7 +38,7 @@ switch ($requestMethod) {
 
         if ($result_gallery_video) {
             while ($row = $result_gallery_video->fetch_assoc()) {
-                $row['video'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['video'];
+                $row['src'] = '' . $row['video'];
                 $video[] = $row;
             }
         } else {
@@ -54,12 +54,12 @@ switch ($requestMethod) {
             'status' => true,
             'data' => [
                 [
-                    'club' => 'image',
+                    'type' => 'image',
                     'id' => '1',
                     'members' => $image,
                 ],
                 [
-                    'club' => 'video',
+                    'type' => 'video',
                     'id' => '1',
                     'members' => $video,
                 ],

@@ -17,7 +17,7 @@ if ($requestMethod === 'GET') {
 
     if ($result_contest) {
         while ($row = $result_contest->fetch_assoc()) {
-            $row['image'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['image'];
+            $row['image'] = '' . $row['image'];
             $contest[] = $row;
         }
     } else {
@@ -33,7 +33,7 @@ if ($requestMethod === 'GET') {
         'status' => true,
         'data' => [
             [
-                'club' => 'contest',
+                'Contest' => 'contest',
                 'id' => '1', // Additional information for platinum
                 'members' => $contest,],
 

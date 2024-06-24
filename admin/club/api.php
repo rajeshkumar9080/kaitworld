@@ -14,13 +14,16 @@ if ($requestMethod === 'GET') {
     $platinum = [];
     $silver = [];
     $bronze = [];
+    $diamond = [];
+    $double_daimond = [];    
+    $triple_daimond = []; 
 
     $query_gold = "SELECT * FROM tbl_add_gold";
     $result_gold = $con->query($query_gold);
 
     if ($result_gold) {
         while ($row = $result_gold->fetch_assoc()) {
-            $row['user_image'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['user_image'];
+            $row['user_image'] = '' . $row['user_image'];
             $gold[] = $row;
         }
     } else {
@@ -37,7 +40,7 @@ if ($requestMethod === 'GET') {
 
     if ($result_platinum) {
         while ($row = $result_platinum->fetch_assoc()) {
-            $row['user_image'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['user_image'];
+            $row['user_image'] = '' . $row['user_image'];
             $platinum[] = $row;
         }
     } else {
@@ -54,7 +57,7 @@ if ($requestMethod === 'GET') {
 
     if ($result_silver) {
         while ($row = $result_silver->fetch_assoc()) {
-            $row['user_image'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['user_image'];
+            $row['user_image'] = '' . $row['user_image'];
             $silver[] = $row;
         }
     } else {
@@ -82,34 +85,122 @@ if ($requestMethod === 'GET') {
         echo json_encode($response);
         exit;
     }
+    
+    $query_daimond = "SELECT * FROM tbl_add_daimond";
+    $result_daimond = $con->query($query_daimond);
 
- 
+    if ($result_daimond) {
+        while ($row = $result_daimond->fetch_assoc()) {
+             $row['user_image'] = '' . $row['user_image'];
+            $diamond[] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch bronze data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
+
+    $query_double_daimond = "SELECT * FROM tbl_add_double_daimond";
+    $result_double_daimond = $con->query($query_double_daimond);
+
+    if ($result_double_daimond) {
+        while ($row = $result_double_daimond->fetch_assoc()) {
+             $row['user_image'] = '' . $row['user_image'];
+            $double_daimond[] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch bronze data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
+
+    $query_triple_daimond = "SELECT * FROM tbl_add_triple_daimond";
+    $result_triple_daimond = $con->query($query_triple_daimond);
+
+    if ($result_triple_daimond) {
+        while ($row = $result_triple_daimond->fetch_assoc()) {
+             $row['user_image'] = '' . $row['user_image'];
+            $triple_daimond [] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch bronze data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
+
+    $query_kait_king = "SELECT * FROM tbl_add_kait_king";
+    $result_kait_king = $con->query($query_kait_king);
+
+    if ($result_kait_king) {
+        while ($row = $result_kait_king->fetch_assoc()) {
+             $row['user_image'] = '' . $row['user_image'];
+            $kait_king [] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch bronze data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
 
 
     $response = [
         'status' => true,
         'data' => [
-            [
+    [
                 'club' => 'bronze',
                 'id' => '1', // Additional information for platinum
                 'members' => $bronze,],
-                [
+   [
+        
+                    'club' => 'platinum',
+                    'id' => '2', // Additional information for platinum
+                    'members' => $platinum,],
+    [
+                        'club' => 'gold',
+                        'id' => '3', // Additional information for gold
+                        'members' => $gold,],
+    [
             
                     'club' => 'silver',
                     'id' => '4', // Additional information for platinum
                     'members' => $silver,],
-         [
-                'club' => 'gold',
-                'id' => '3', // Additional information for gold
-                'members' => $gold,],
+        
+   
     [
         
-                'club' => 'platinum',
-                'id' => '2', // Additional information for platinum
-                'members' => $platinum,],
-         
-          
-            
+                'club' => 'diamond',
+                'id' => '5', // Additional information for platinum
+                'members' => $diamond,],
+                   
+    [
+        
+                'club' => 'double_daimond',
+                'id' => '6', // Additional information for platinum
+                'members' => $double_daimond,],
+   [
+        
+                'club' => 'triple_daimond',
+                'id' => '7', // Additional information for platinum
+                'members' => $triple_daimond,],
+   [
+        
+                 'club' => 'kait_king',
+                 'id' => '8', // Additional information for platinum
+                 'members' => $kait_king,],
+             
+                         
            
         ]
              ];

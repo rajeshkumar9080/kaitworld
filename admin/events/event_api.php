@@ -18,7 +18,7 @@ if ($requestMethod === 'GET') {
 
     if ($result_event) {
         while ($row = $result_event->fetch_assoc()) {
-            $row['event_image'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['event_image'];
+            $row['event_image'] = '' . $row['event_image'];
             $event[] = $row;
         }
     } else {
@@ -35,7 +35,7 @@ if ($requestMethod === 'GET') {
 
     if ($result_upcoming_event) {
         while ($row = $result_upcoming_event->fetch_assoc()) {
-            $row['event_image1'] = 'http://localhost/kait/admin/assets/images/gallery/' . $row['event_image1'];
+            $row['event_image1'] = '' . $row['event_image1'];
             $upcoming_event[] = $row;
         }
     } else {
@@ -52,11 +52,11 @@ if ($requestMethod === 'GET') {
         'status' => true,
         'data' => [
             [
-                'club' => 'event',
+                'Events' => 'event',
                 'id' => '1', // Additional information for platinum
                 'members' => $event,],
                 [
-                    'club' => 'upcoming_event',
+                    'Upcoming Events' => 'upcoming_event',
                     'id' => '1', // Additional information for platinum
                     'members' => $upcoming_event,],
         ]

@@ -1,5 +1,22 @@
-<?php include("header.php"); 
+<?php
+include("header.php");
 include('db_config.php');
+require 'vendor/autoload.php';
+
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+
+Configuration::instance([
+    'cloud' => [
+        'cloud_name' => 'dspp2vqid',
+        'api_key'    => '838937238819565',
+        'api_secret' => 'SOIhazSJm8MEUaov7sMAcBQRlew'
+    ],
+    'url' => [
+        'secure' => true
+    ]
+]);
 ?>
     <!-- This page plugin CSS -->
     <link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
@@ -39,6 +56,7 @@ include('db_config.php');
                           <th>title</th>
                           <th>content</th>
                           <th>video</th>
+                          <th>video Url</th>
                           <th>Date</th>
                           <th>Action</th>
                         </tr>
@@ -56,30 +74,30 @@ include('db_config.php');
                           <td><?php echo $row['title'];?></td>
                             <td><?php echo $row['content'];?></td>
                             <td class="pro-list-img">
-    <video controls width='220px' height='100px'>
-      
+                <video controls width='220px' height='100px'>
         <!-- Add more source elements if needed -->
-        <source src="assets\images\video\<?php echo $row['video'];?>" type="video/mp4">
-    </video>
-</td>
-                          <td><?php $originalDate = $row['registered_date'];echo $newDate = date("y-m-d", strtotime($originalDate)); ?></td>
+        <source src="<?php echo $row['video'];?>" type="video/mp4"> 
+         </video>    
+        </td>
+        <td>        
+            <a href="<?php echo htmlspecialchars($row['video']); ?>" target="_blank"><?php echo htmlspecialchars($row['video']); ?></a>    
+        </td>
+                          <td><?php $originalDate = $row['registered_date']; echo $newDate = date("y-m-d", strtotime($originalDate)); ?></td>
                          <td><a class="like w-100px" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;
-						              <a class="remove text-danger" data-bs-toggle="modal" data-bs-target="#del<?php echo $row['id'];?>" title="Remove"><i class="ti-trash"></i></a></td>
-                        </tr>
+                         <a class="remove text-danger" data-bs-toggle="modal" data-bs-target="#del<?php echo $row['id'];?>" title="Remove"> <i class="ti-trash"></i></a>                         </tr>    
 						<!-- Add Contact Popup Model -->
-                  <div id="edit-contact<?php echo $row['id'];?>" class="modal fade in" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+                  <div id="edit-contact<?php echo $row['id'];?>"class="modal fade in" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
                     aria-hidden="true">
-
                       <?php 
 						$id=$row['id'];
-						$exe="SELECT * FROM tbl_add_gallery_video where id='$id' ";
+						$exe="SELECT * FROM tbl_add_gallery_video where id='$id'";
 						$exe_result=mysqli_query($con,$exe);
 						$rowresult = mysqli_fetch_array($exe_result); 
 					?>
                     <div class="modal-dialog">
                       <div class="modal-content">
                         <div class="modal-header d-flex align-items-center">
-                          <h4 class="modal-title" id="myModalLabel">Edit Country</h4>
+                          <h4 class="modal-title" id="myModalLabel">Edit Country</h4>   
                           <button type="button" class="close ms-auto" data-bs-dismiss="modal" aria-hidden="true">×</button>
                         </div>
 						<form class="form-horizontal form-material" method="POST" enctype="multipart/form-data">
@@ -89,25 +107,20 @@ include('db_config.php');
                                 <input type="text" class="form-control" name="title"  placeholder="title" value="<?php echo $row['title'];?>"/>
                               </div> 
 							  <div class="col-md-12 mb-3">
-							    <!-- <input type="text" class="form-control" name="content" required placeholder="content" value="<?php echo $row['content'];?>"/> -->
-                  <textarea id="content_page" class="form-control editor"  name="content" type="text"value="<?php echo $row['content'];?>"></textarea>
-
+                  <textarea id="content_page" class="form-control editor" name="content" type="text"><?php echo $row['content'];?></textarea>
                               </div> 
-							  <div class="col-md-12 mb-3">
-                         <label for="image">video</label>
-                         <video controls width='220px' height='100px'>
-      
-      <!-- Add more source elements if needed -->
-      <source src="assets\images\video\<?php echo $row['video'];?>" type="video/mp4">
-  </video>                      </div>
-                      <div class="form-group">
-                        <input id="image" class="form-control" name="video" type="file">
-                      </div>
-                      
-							  <input type="hidden" value="<?php echo $row['id'];?>" name="id">
-							  <input type="hidden" value="<?php echo $row['video'];?>" name="video">
-                            </div>                         
-                        </div>
+
+                              <div class="col-md-12 mb-3">
+                                  <label for="video">Video</label>
+                                  <video controls width='220px' height='100px'>
+                                    <source src="<?php echo $row['video'];?>" type="video/mp4">
+                                </video>                      </div>
+                                <div class="form-group">
+                                  <input id="video" class="form-control" name="video" type="file">
+                              </div>
+                              <input type="hidden" value="<?php echo $row['id'];?>" name="id">
+                              <input type="hidden" value="<?php echo $row['video'];?>" name="existing_video">        
+                                                      </div>
                         <div class="modal-footer">
                           <button type="submit" class="btn btn-info" name="update" value="update">Update</button>
                           <button type="button" class="btn btn-default waves-effect" data-bs-dismiss="modal">Cancel</button>
@@ -118,34 +131,37 @@ include('db_config.php');
                     </div>
                     <!-- /.modal-dialog -->
                   </div>
-
                   <div class="modal fade" id="del<?php echo $row['id'];?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-				  <div class="modal-dialog modal-lg" role="document">
-					<div class="modal-content">
-					  <div class="modal-header">
-						<h5 class="modal-title" id="exampleModalLabel">Delete Country</h5>
-						<button type="button" class="close ms-auto" data-bs-dismiss="modal" aria-hidden="true">×</button>
-					  </div>
-					<?php 
-						$id=$row['id'];
-						$execution="	SELECT * FROM tbl_add_gallery_video where id='$id' ";
-						$exe_results=mysqli_query($con,$execution);
-						$rowresults = mysqli_fetch_array($exe_results);
-						?>
-					  <form method="post">
-					  <input type="hidden" value="<?php echo $rowresult['video'];?>" name="video">
-					  <div class="modal-body">
-						<div class="alert alert-danger"><span class="icon-warning"></span> Are you sure you want to delete this Record?</div>
-						<input type="hidden" name="id" value="<?php echo $rowresults['id'];?>">
-					  </div>
-					  <div class="modal-footer">
-						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-						<input type="submit"  name="delete" class="btn btn-primary" value="Delete"> 
-					  </div>
-					  </form>
-					</div>
-				  </div>
-				</div>
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Delete Country</h5>
+                <button type="button" class="close ms-auto" data-bs-dismiss="modal" aria-hidden="true">×</button>
+            </div>  
+
+            <?php 
+            $id = $row['id'];
+            $execution = "SELECT * FROM tbl_add_gallery_video WHERE id='$id'";
+            $exe_results = mysqli_query($con, $execution);
+            $rowresults = mysqli_fetch_array($exe_results);
+            ?>
+            <form method="POST">
+                <input type="hidden" value="<?php echo $rowresults['video']; ?>" name="video">
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <span class="icon-warning"></span> Are you sure you want to delete this Record?
+                    </div>
+                    <input type="hidden" name="id" value="<?php echo $rowresults['id']; ?>">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <input type="submit" name="delete" class="btn btn-primary" value="Delete">
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
                       <?php } ?>
                       </tbody>
                       <tfoot>
@@ -154,6 +170,7 @@ include('db_config.php');
                         <th>title</th>
                         <th>content</th>
                         <th>video</th>
+                        <th>video Url</th>
                           <th>Date</th>
                           <th>Action</th>
                         </tr>
@@ -164,7 +181,6 @@ include('db_config.php');
               </div>
             </div>
           </div>
-
                       <div id="add-contact" class="modal fade in" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
                     aria-hidden="true">
                     <div class="modal-dialog">
@@ -204,8 +220,6 @@ include('db_config.php');
                     <!-- /.modal-dialog -->
                   </div>
                       </tbody>
-          
-
 
                         <!-- -------------------------------------------------------------- -->
           <!-- End PAge Content -->
@@ -267,9 +281,9 @@ include('db_config.php');
     <script src="https://cdn.datatables.net/buttons/1.5.1/js/buttons.print.min.js"></script>
     <script src="dist/js/pages/datatable/datatable-advanced.init.js"></script>
   </body>
-
- <?php
-if (isset($_POST['submit'])) {
+  
+  <?php
+  if (isset($_POST['submit'])) {
     $title = $_POST['title'];
     $content = $_POST['content'];
     $registered_date = date('Y-m-d');
@@ -289,116 +303,126 @@ if (isset($_POST['submit'])) {
             $destination = 'assets/images/video/' . $new_file_name;
 
             if (move_uploaded_file($file_temp, $destination)) {
-                $query = "INSERT INTO tbl_add_gallery_video (title, content, video, registered_date) VALUES ('$title', '$content', '$new_file_name', '$registered_date')";
-                
-                if (mysqli_query($con, $query)) {
-                    echo "<script>alert('Video Uploaded')</script>";
-                    echo "<script>window.location = 'view_gallery_video.php'</script>";
-                } else {
-                    echo "<script>alert('Error uploading video')</script>";
-                    echo "<script>window.location = 'view_gallery_video.php'</script>";
+                try {
+                    // Initialize Cloudinary with your configuration
+
+                    // Upload the video to Cloudinary
+                    $cloudUpload = (new UploadApi())->upload($destination, ['resource_type' => 'video']);
+                    $cloudinaryUrl = $cloudUpload['secure_url'];
+
+                    // Insert data into the database
+                    $sql_query = "INSERT INTO tbl_add_gallery_video (title, content, video, registered_date) VALUES ('$title', '$content', '$cloudinaryUrl', '$registered_date')";
+                    $query = mysqli_query($con, $sql_query);
+
+                    if ($query) {
+                        echo '<script type="text/javascript">alert("Insert Successfully"); window.location.href = "view_gallery_video.php";</script>';
+                    } else {
+                        echo '<script type="text/javascript">alert("Failed to insert into database"); window.location.href = "view_gallery_video.php";</script>';
+                    }
+                } catch (Exception $e) {
+                    echo 'Cloudinary upload failed: ' . $e->getMessage();
                 }
             } else {
-                echo "<script>alert('Error moving uploaded file')</script>";
-                echo "<script>window.location = 'view_gallery_video.php'</script>";
+                echo '<script type="text/javascript">alert("Failed to move uploaded file"); window.location.href = "view_gallery_video.php";</script>';
             }
         } else {
-            echo "<script>alert('Wrong video format')</script>";
-            echo "<script>window.location = 'view_gallery_video.php'</script>";
+            echo '<script type="text/javascript">alert("Invalid file type"); window.location.href = "view_gallery_video.php";</script>';
         }
     } else {
-        echo "<script>alert('File too large to upload')</script>";
-        echo "<script>window.location = 'view_gallery_video.php'</script>";
+        echo '<script type="text/javascript">alert("File size exceeds the limit of 50 MB"); window.location.href = "view_gallery_video.php";</script>';
+    }
+}
+?>
+
+
+<?php 
+error_reporting(0);
+if ($_POST["delete"]) {
+    $id = $_POST['id'];
+    $video = $_POST['video'];
+    unlink("assets/images/video/" . $video);
+    unlink("assets/images/gallery/thumb/" . $video);
+    $sql = "DELETE FROM tbl_add_gallery_video WHERE id='$id'";
+    $res = mysqli_query($con, $sql);
+    if ($res) {
+        echo '<script type="text/javascript">alert("Deleted successfully");window.location.href = "view_gallery_video.php";</script>';
     }
 }
 ?>
 
 
 
- <?php error_reporting(0);
-if ($_POST["delete"])
-{
-		$id=$_POST['id'];
-		$video=$_POST['video'];
-	 unlink("assets/images/video".$video);
-	 unlink("assets/images/gallery/thumb/".$video);
-		$sql=" DELETE FROM tbl_add_gallery_video WHERE id='$id'";
-		$res=mysqli_query($con,$sql);
-		if($res){
-			echo '<script type="text/javascript">alert("Deleted sucessfully");window.location.href = "view_gallery_video.php";</script>';
 
-		}
-}
-		?> 
-		
-		
-    
-    <?php  
+<?php
+if (isset($_POST['update'])) {
+    // Sanitize and retrieve form data
+    $id = mysqli_real_escape_string($con, $_POST['id']);
+    $title = mysqli_real_escape_string($con, $_POST['title']);
+    $content = mysqli_real_escape_string($con, $_POST['content']);
+    $registered_date = date('Y-m-d'); // Assuming you want to update the registered date too
+    date_default_timezone_set('Asia/Manila');
+    if (isset($_FILES['video']) && $_FILES['video']['error'] === UPLOAD_ERR_OK) {
+        $file_name = $_FILES['video']['name'];
+        $file_temp = $_FILES['video']['tmp_name'];
+        $file_size = $_FILES['video']['size'];
+        if ($file_size < 50000000) { // 50MB file size limit
+            $folderName = "assets/images/video/";
+            $valid_video_types = array("video/mp4", "video/mpeg", "video/quicktime"); // Valid video MIME types
 
-    // Assuming you have retrieved the form data, including the video ID, title, content, and uploaded video file
-    if(isset($_POST['update'])) { 
-        $id = $_POST['id']; // Assuming you are getting the ID from the form
-        $title = $_POST['title'];
-        $content = $_POST['content'];
-        $registered_date = date('Y-m-d'); // Assuming you want to update the registered date too
-        date_default_timezone_set('Asia/Manila');
-    
-        // Check if a new video file is uploaded
-        if(isset($_FILES['video']) && $_FILES['video']['error'] === UPLOAD_ERR_OK) {
-            $file_name = $_FILES['video']['name'];
-            $file_temp = $_FILES['video']['tmp_name'];
-            $file_size = $_FILES['video']['size'];
-    
-            // Validate file size and type
-            if($file_size < 50000000) { // 50MB file size limit
-                // File upload directory
-                $folderName = "assets/images/video/";
-                $valid_video_types = array("video/mp4", "video/mpeg", "video/quicktime"); // Valid video MIME types
-    
-                if(in_array($_FILES['video']['type'], $valid_video_types)) {
-                    // Generate unique file name (assuming you want to overwrite existing file)
-                    $name = date("Ymd").time();
-                    $file_name = $folderName . $name . ".mp4"; // Assuming you want to store videos in mp4 format
-    
-                    // Move uploaded file to the desired location
-                    if(move_uploaded_file($file_temp, $file_name)) {
+            if (in_array($_FILES['video']['type'], $valid_video_types)) {
+                // Generate unique file name (assuming you want to overwrite existing file)
+                $name = date("Ymd") . time();
+                $new_file_name = $folderName . $name . ".mp4"; // Assuming you want to store videos in mp4 format
+
+                // Move uploaded file to the desired location
+                if (move_uploaded_file($file_temp, $new_file_name)) {
+                    try {
+                        // Upload the video to Cloudinary
+                        $cloudUpload = (new UploadApi())->upload($new_file_name, ['resource_type' => 'video']);
+                        $cloudinaryUrl = $cloudUpload['secure_url'];
+
+                        // Remove the local file after successful upload
+                        unlink($new_file_name);
+
                         // Update database with the new video file
                         $updateQuery = "UPDATE tbl_add_gallery_video SET title=?, content=?, video=?, registered_date=? WHERE id=?";
                         $stmt = $con->prepare($updateQuery);
-                        $stmt->bind_param("ssssi", $title, $content, $file_name, $registered_date, $id);
-    
-                        if($stmt->execute()) {
+                        $stmt->bind_param("ssssi", $title, $content, $cloudinaryUrl, $registered_date, $id);
+
+                        if ($stmt->execute()) {
                             echo '<script>alert("Video updated successfully.");window.location.href = "view_gallery_video.php";</script>';
                         } else {
                             echo '<script>alert("Failed to update video.");window.location.href = "view_gallery_video.php";</script>';
                         }
                         $stmt->close();
-                    } else {
-                        echo '<script>alert("Failed to move uploaded file.");window.location.href = "view_gallery_video.php";</script>';
+                    } catch (Exception $e) {
+                        echo 'Cloudinary upload failed: ' . $e->getMessage();
+                        exit();
                     }
                 } else {
-                    echo '<script>alert("Invalid video format.");window.location.href = "view_gallery_video.php";</script>';
+                    echo '<script>alert("Failed to move uploaded file.");window.location.href = "view_gallery_video.php";</script>';
                 }
             } else {
-                echo '<script>alert("File size too large.");window.location.href = "view_gallery_video.php";</script>';
+                echo '<script>alert("Invalid video format.");window.location.href = "view_gallery_video.php";</script>';
             }
         } else {
-            // No new video file uploaded, update only title, content, and registered date
-            $updateQuery = "UPDATE tbl_add_gallery_video SET title=?, content=?, registered_date=? WHERE id=?";
-            $stmt = $con->prepare($updateQuery);
-            $stmt->bind_param("sssi", $title, $content, $registered_date, $id);
-    
-            if($stmt->execute()) {
-                echo '<script>alert("Video updated successfully.");window.location.href = "view_gallery_video.php";</script>';
-            } else {
-                echo '<script>alert("Failed to update video.");window.location.href = "view_gallery_video.php";</script>';
-            }
-            $stmt->close();
+            echo '<script>alert("File size too large.");window.location.href = "view_gallery_video.php";</script>';
         }
-    }
-    ?>
-    
+    } else {
+        // No new video file uploaded, update only title, content, and registered date
+        $updateQuery = "UPDATE tbl_add_gallery_video SET title=?, content=?, registered_date=? WHERE id=?";
+        $stmt = $con->prepare($updateQuery);
+        $stmt->bind_param("sssi", $title, $content, $registered_date, $id);
 
+        if ($stmt->execute()) {
+            echo '<script>alert("Video updated successfully.");window.location.href = "view_gallery_video.php";</script>';
+        } else {
+            echo '<script>alert("Failed to update video.");window.location.href = "view_gallery_video.php";</script>';
+        }
+        $stmt->close();
+    }
+}
+?>
 
 <script>
 CKEDITOR.replaceClass = 'editor';

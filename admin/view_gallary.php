@@ -1,6 +1,22 @@
-<?php include("header.php");
+<?php
+include("header.php");
 include('db_config.php');
- ?>
+require 'vendor/autoload.php';
+
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+Configuration::instance([
+    'cloud' => [
+        'cloud_name' => 'dspp2vqid',
+        'api_key'    => '838937238819565',
+        'api_secret' => 'SOIhazSJm8MEUaov7sMAcBQRlew'
+    ],
+    'url' => [
+        'secure' => true
+    ]
+]);
+?>
     <!-- This page plugin CSS -->
     <link href="assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet"/>
 <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
@@ -91,7 +107,7 @@ include('db_config.php');
 						              <td><?php echo $i++;?></td>
                           <td><?php echo $row['user_title'];?></td>
 						    <td><?php echo $row['user_content'];?></td>
-						   <td  class="pro-list-img"><img src="assets/images/gallery/<?php echo $row['user_image'];?>" style="height: 44px;"></td>
+						   <td  class="pro-list-img"><img src="<?php echo $row['user_image'];?>" style="height: 44px;"></td>
 
                           <td><?php  $originalDate = $row['registered_date'];  echo $newDate = date("d-m-Y", strtotime($originalDate)); ?></td>
                          <td><a class="like" data-bs-toggle="modal" data-bs-target="#edit-contact<?php echo $row['so_id'];?>" title="edit"><i class="ti-pencil-alt"></i></a>&nbsp;
@@ -125,7 +141,7 @@ include('db_config.php');
                               </div>
 							  <div class="col-md-12 mb-3">
                          <label for="image">Photo</label>
-                        <img src="assets/images/gallery/<?php echo $row['user_image'];?>" alt="image"  width="100px" height="100px">
+                        <img src="<?php echo $row['user_image'];?>" alt="image"  width="100px" height="100px">
                       </div>
                       <div class="form-group">
                         <input id="image" class="form-control" name="img_files" type="file">
@@ -149,12 +165,11 @@ include('db_config.php');
 				  <div class="modal fade" id="del<?php echo $row['so_id'];?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
 				  <div class="modal-dialog modal-lg" role="document">
 					<div class="modal-content">
-					  <div class="modal-header">
-						<h5 class="modal-title" id="exampleModalLabel">Delete Country</h5>
+					  <div class="modal-header">         
+						<h5 class="modal-title" id="exampleModalLabel">Delete Country</h5>    
 						<button type="button" class="close ms-auto" data-bs-dismiss="modal" aria-hidden="true">×</button>
 					  </div>
-
-					<?php 
+					<?php                        
 						$so_id=$row['so_id'];
 						$execution="SELECT * FROM tbl_add_gallery where so_id='$so_id' ";
 						$exe_results=mysqli_query($con,$execution);
@@ -299,60 +314,59 @@ include('db_config.php');
 </html>
 
 <?php 
-if(isset($_POST['submit'] ) ) {
-	$user_title=$_POST['user_title'];
-	$user_content=$_POST['user_content'];
-  $registered_date= date('Y-m-d'); 
-  $filename = $_FILES["user_image"]["name"];    
-      $allowed_types = array("image/jpeg","image/png","image/gif","image/bmp","image/gif");
-      // $max_size = 5 * 1024 * 1024; // 5 MB
-    
-      // Validate file type
-      if (in_array($_FILES["user_image"]["type"], $allowed_types)) {
-          // Validate file size
-          if ($_FILES["user_image"]) {
-              // Move the uploaded file to the desired directory
-              $upload_dir = "assets/images/gallery/";
-              $file_name = basename($_FILES["user_image"]["name"]);
-              $destination = $upload_dir . $file_name;
-            
-              if (move_uploaded_file($_FILES["user_image"]["tmp_name"], $destination)) {
-            
-        // if valid image type then upload
-        // if (in_array($image_mime, $valid_image_check)) {
+if(isset($_POST['submit'])) {
+    // Assuming $con is your database connection object
+  
+    // Sanitize and retrieve form data
+    $user_title = $_POST['user_title'];
+    $user_content =$_POST['user_content'];
+    $registered_date = date('Y-m-d');
+    // File upload handling
+    $filename = $_FILES["user_image"]["name"];
 
-        //   $ext = explode("/", strtolower($image_mime));
-        //   $ext = strtolower(end($ext));
-        //   $filename = rand(20000, 990000) . '_' . time() . '.' . $ext;
-        //   $filepath = $folderName . $filename;
-      
-        
-            // $smsg .= "<strong>" . $_FILES["up_image"]["name"] . "</strong> uploaded successfully. <br>";
+    $allowed_types = array("image/jpeg", "image/png", "image/gif", "image/bmp", "image/gif");
+    $max_size = 5 * 1024 * 1024; // 5 MB
 
-            // // $magicianObj = new imageLib($filepath);
-            // $magicianObj->resizeImage(280, 160);
-            // $magicianObj->saveImage($folderName . 'thumb/' . $filename, 9); 
-       echo $sql_query ="INSERT INTO tbl_add_gallery (user_title,user_content,user_image,registered_date)VALUES ('$user_title','$user_content','$filename','$registered_date')";
-              $query = mysqli_query($con,$sql_query); 
-              // $result = mysqli_num_rows($query);
-              if ($query) {
-                // file uplaoded successfully.
-				echo '<script type="text/javascript">alert("Insert Sucessfully");
-               window.location.href = "view_gallary.php";</script>';
-              }else{
-                // failed to insert into database.
-				echo '<script type="text/javascript">alert("Failed to upload <strong>"' . $filename . '"</strong>");
-               window.location.href = "view_gallary.php";</script>';
-              
-            
-            /*             * ****** insert into database ends ******** */
-          }
-        } 
-	   }
-      }
-  } 
+    if (in_array($_FILES["user_image"]["type"], $allowed_types)) {
+      // Validate file size
+      if ($_FILES["user_image"]["size"] <= $max_size) {
+          // Move the uploaded file to the desired directory
+          $upload_dir = "assets/images/gallery/";
+          $file_name = basename($_FILES["user_image"]["name"]);
+          $destination = $upload_dir . $file_name;
 
+          if (move_uploaded_file($_FILES["user_image"]["tmp_name"], $destination)) {
+            // Upload the image to Cloudinary
+                try {
+                    // Upload file to cloud (assuming UploadApi class and method)
+                    $cloudUpload = (new UploadApi())->upload($destination);
+                    $cloudinaryUrl = $cloudUpload['secure_url'];
+                    
+                    // Insert data into database
+                    $sql_query = "INSERT INTO tbl_add_gallery (user_title, user_content, user_image, registered_date) VALUES ('$user_title', '$user_content', '$cloudinaryUrl', '$registered_date')";
+                    $query = mysqli_query($con, $sql_query);
+                    
+                    if($query) {
+                        echo '<script>alert("Inserted Successfully"); window.location.href = "view_gallary.php";</script>';
+                    } else {
+                        echo '<script>alert("Failed to insert into database"); window.location.href = "view_gallary.php";</script>';
+                    }
+                } catch (Exception $e) {
+                    echo 'Cloudinary upload failed: ' . $e->getMessage();
+                }
+            } else {
+                echo '<script>alert("Failed to move uploaded file"); window.location.href = "view_gallary.php";</script>';
+            }
+        } else {
+            echo '<script>alert("Invalid file type"); window.location.href = "view_gallary.php";</script>';
+        }
+    } else {
+        echo '<script>alert("File upload error"); window.location.href = "view_gallary.php";</script>';
+    }
+}
 ?>
+
+
 
 <?php error_reporting(0);
 if ($_POST["delete"])
@@ -376,49 +390,58 @@ if ($_POST["delete"])
 		
     <?php
 if (isset($_POST['update'])) {
-    // Assuming $con is your database connection object and $id is the ID of the record to update
+    // Assuming $con is your database connection object and $so_id is the ID of the record to update
 
     // Sanitize and retrieve form data
     $so_id = mysqli_real_escape_string($con, $_POST['so_id']);
     $user_title = mysqli_real_escape_string($con, $_POST['user_title']);
     $user_content = mysqli_real_escape_string($con, $_POST['user_content']);
-    $user_image = mysqli_real_escape_string($con, $_POST['user_image']);
     $file_name = $_FILES["img_files"]["name"];
-  
+
     // Validate file upload
     if (!empty($file_name)) {
         $folderName = "assets/images/gallery/";
         $filepath = $folderName . basename($file_name);
-        $image_info = getimagesize($_FILES["img_files"]["tmp_name"]);
         $image_mime = strtolower(image_type_to_mime_type(exif_imagetype($_FILES["img_files"]["tmp_name"])));
         $valid_image_check = array("image/gif", "image/jpeg", "image/jpg", "image/png", "image/bmp");
-    
-         if (!in_array($image_mime, $valid_image_check)) {
-        //     echo '<script type="text/javascript">alert("Invalid image format.");window.location.href = "view_gallary.php";</script>';
-        //     exit();
+
+        if (!in_array($image_mime, $valid_image_check)) {
+            echo '<script>alert("Invalid image format.");window.location.href = "view_gallary.php";</script>';
+            exit();
         }
-      
+
         // Move uploaded file
         if (!move_uploaded_file($_FILES["img_files"]["tmp_name"], $filepath)) {
-        //     echo '<script type="text/javascript">alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_gallary.php";</script>';
-        //     exit();
-         }
-           
-        // Update database record
-        unlink("assets/images/gallery/" . $user_image);
-        unlink("assets/images/gallery/thumb/" . $user_image);
-      echo $sql =("UPDATE `tbl_add_gallery` SET user_title='$user_title',user_content='$user_content',user_image='$file_name' WHERE so_id='$so_id'");
+            echo '<script>alert("Failed to upload ' . $_FILES["img_files"]["name"] . '");window.location.href = "view_gallary.php";</script>';
+            exit();
+        }
+
+        // Upload file to cloud (assuming UploadApi class and method)
+        try {
+            $cloudUpload = (new UploadApi())->upload($filepath);
+            $cloudinaryUrl = $cloudUpload['secure_url'];
+            // Remove the local file after successful upload
+            unlink($filepath);
+
+            // Update database with new image and other fields
+            $sql = "UPDATE `tbl_add_gallery` SET user_title='$user_title', user_content='$user_content', user_image='$cloudinaryUrl' WHERE so_id='$so_id'";
+        } catch (Exception $e) {
+            echo 'Cloudinary upload failed: ' . $e->getMessage();
+            exit();
+        }
     } else {
         // Update without changing the image
-        $sql =("UPDATE `tbl_add_gallery` SET user_title='$user_title',user_content='$user_content' WHERE so_id='$so_id'");
+        $sql = "UPDATE `tbl_add_gallery` SET user_title='$user_title', user_content='$user_content' WHERE so_id='$so_id'";
     }
+
+    // Execute SQL query
     $result = mysqli_query($con, $sql);
     if ($result) {
-        echo '<script type="text/javascript">alert("Updated successfully.");window.location.href = "view_gallary.php";</script>';
+        echo '<script>alert("Updated successfully.");window.location.href = "view_gallary.php";</script>';
     } else {
-        echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_gallary.php";</script>';
+        echo '<script>alert("Failed to update.");window.location.href = "view_gallary.php";</script>';
     }
-  }
+}
 ?>
 
 <script>
