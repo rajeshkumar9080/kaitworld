@@ -11,7 +11,7 @@ $requestMethod = $_SERVER['REQUEST_METHOD'];
 
 if ($requestMethod === 'GET') {
     $event = [];
-    $platinum = [];
+    $upcoming_event = [];
 
     $query_event = "SELECT * FROM tbl_add_eventes";
     $result_event = $con->query($query_event);
@@ -34,7 +34,7 @@ if ($requestMethod === 'GET') {
     $result_upcoming_event = $con->query($query_upcoming_event);
 
     if ($result_upcoming_event) {
-        while ($row = $result_upcoming_event->fetch_assoc()) {
+        while ($row = $result_upcoming_event->fetch_assoc()) { 
             $row['event_image1'] = '' . $row['event_image1'];
             $upcoming_event[] = $row;
         }
@@ -52,12 +52,13 @@ if ($requestMethod === 'GET') {
         'status' => true,
         'data' => [
             [
+                
                 'Events' => 'event',
-                'id' => '1', // Additional information for platinum
+                // 'id' => '1', // Additional information for platinum
                 'members' => $event,],
                 [
                     'Upcoming Events' => 'upcoming_event',
-                    'id' => '1', // Additional information for platinum
+                    // 'id' => '1', // Additional information for platinum
                     'members' => $upcoming_event,],
         ]
             ];

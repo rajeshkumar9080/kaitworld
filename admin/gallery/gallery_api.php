@@ -11,8 +11,8 @@ $requestMethod = $_SERVER['REQUEST_METHOD'];
 
 switch ($requestMethod) {
     case 'GET':
-        $image = [];
-        $video = [];
+        $images = [];
+        $videos = [];
 
         // Fetch images
         $query_image = "SELECT * FROM tbl_add_gallery";
@@ -21,7 +21,8 @@ switch ($requestMethod) {
         if ($result_image) {
             while ($row = $result_image->fetch_assoc()) {
                 $row['src'] = '' . $row['user_image'];
-                $image[] = $row;
+                $row['type'] = 'image';
+                $images[] = $row;
             }
         } else {
             $response = [
@@ -39,7 +40,8 @@ switch ($requestMethod) {
         if ($result_gallery_video) {
             while ($row = $result_gallery_video->fetch_assoc()) {
                 $row['src'] = '' . $row['video'];
-                $video[] = $row;
+                $row['type'] = 'video';
+                $videos[] = $row;
             }
         } else {
             $response = [
@@ -50,20 +52,12 @@ switch ($requestMethod) {
             exit;
         }
 
+        // Merge images and videos with images first
+        $media = array_merge($images, $videos);
+
         $response = [
             'status' => true,
-            'data' => [
-                [
-                    'type' => 'image',
-                    'id' => '1',
-                    'members' => $image,
-                ],
-                [
-                    'type' => 'video',
-                    'id' => '1',
-                    'members' => $video,
-                ],
-            ]
+            'data' => $media
         ];
         echo json_encode($response);
         break;
