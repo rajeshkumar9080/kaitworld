@@ -106,16 +106,16 @@ Configuration::instance([
 							   <textarea id="content_page" class="form-control editor" name="user_name" type="text"><?php echo $row['user_name'];?></textarea>
                            
                               </div>
-							  <div class="col-md-12 mb-3">
+							  <div class="col-md-12 mb-3">   
                          <label for="image">Photo</label>
                         <img src="<?php echo $row['user_image'];?>" alt="image"  width="100px" height="100px">
                       </div>
                       <div class="form-group">
-                        <input id="image" class="form-control" name="img_files" type="file">
-                      </div>
+                        <input id="image" class="form-control" name="img_files" type="file">    
+                      </div>     
                       
 							  <input type="hidden" value="<?php echo $row['id'];?>" name="id">
-							  <input type="hidden" value="<?php echo $row['user_image'];?>" name="user_image" >
+							  <input type="hidden" value="<?php echo $row['user_image'];?>" name="user_image" >   
                             </div>                         
                         </div>
                         <div class="modal-footer">

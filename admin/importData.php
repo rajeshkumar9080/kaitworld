@@ -14,14 +14,14 @@ if(isset($_POST['importSubmit'])){
 
             // Skip the first line
             fgetcsv($csvFile);
-
+        
             // Parse data from CSV file line by line
             while(($line = fgetcsv($csvFile)) !== FALSE){ 
                 // Get row data
                 $user_id = $line[0];
                 $user_name = $line[1];
                 $registered_date = date("y-m-d", strtotime($originalDate)); // Current date and time in MySQL format
-                
+                 
                 // Check whether member already exists in the database with the same email
                 $prevQuery = "SELECT id FROM tbl_add_bronze WHERE user_id = ?";
                 $stmt = $con->prepare($prevQuery);

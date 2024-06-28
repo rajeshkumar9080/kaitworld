@@ -17,6 +17,7 @@ if ($requestMethod === 'GET') {
     $diamond = [];
     $double_daimond = [];    
     $triple_daimond = []; 
+    $kait_king = [];
 
     $query_gold = "SELECT * FROM tbl_add_gold";
     $result_gold = $con->query($query_gold);
@@ -160,45 +161,47 @@ if ($requestMethod === 'GET') {
         'data' => [
     [
                 'club' => 'bronze',
-                'id' => '1', // Additional information for platinum
+                'id' => '1', 
                 'members' => $bronze,],
-   [
-        
-                    'club' => 'platinum',
-                    'id' => '2', // Additional information for platinum
-                    'members' => $platinum,],
-    [
-                        'club' => 'gold',
-                        'id' => '3', // Additional information for gold
-                        'members' => $gold,],
-    [
+                [
             
                     'club' => 'silver',
-                    'id' => '4', // Additional information for platinum
+                    'id' => '4', // Additional information for silver
                     'members' => $silver,],
+
+    [
+                        'club' => 'gold',
+                        'id' => '3', 
+                        'members' => $gold,],
+                        [
+        
+                            'club' => 'platinum',
+                            'id' => '2', 
+                            'members' => $platinum,],
+ 
         
    
     [
         
                 'club' => 'diamond',
-                'id' => '5', // Additional information for platinum
+                'id' => '5', 
                 'members' => $diamond,],
                    
-    [
+    // [
         
-                'club' => 'double_daimond',
-                'id' => '6', // Additional information for platinum
-                'members' => $double_daimond,],
-   [
+    //             'club' => 'double_daimond',
+    //             'id' => '6', 
+    //             'members' => $double_daimond,],
+//    [
         
-                'club' => 'triple_daimond',
-                'id' => '7', // Additional information for platinum
-                'members' => $triple_daimond,],
-   [
+//                 'club' => 'triple_daimond',
+//                 'id' => '7', 
+//                 'members' => $triple_daimond,],
+//    [
         
-                 'club' => 'kait_king',
-                 'id' => '8', // Additional information for platinum
-                 'members' => $kait_king,],
+//                  'club' => 'kait_king',
+//                  'id' => '8',
+//                  'members' => $kait_king,],
              
                          
            

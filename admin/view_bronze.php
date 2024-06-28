@@ -128,17 +128,16 @@ include('db_config.php');
                         </div>
 						<form class="form-horizontal form-material" method="POST" enctype="multipart/form-data">
                         <div class="modal-body">                                          
-                            <div class="form-group">
-                              <div class="col-md-12 mb-3">
+                            <div class="form-group">                       
+                              <div class="col-md-12 mb-3">            
                                 <input type="text" class="form-control" name="user_id" required placeholder="user_id" value="<?php echo $row['user_id'];?>"/>
-                              </div> 
+                              </div>                    
 							  <!-- <div class="col-md-12 mb-3">
 							    <input type="text" class="form-control" name="user_name" required placeholder="user_email_id" value="<?php echo $row['user_email_id'];?>"/>
                               </div>  -->
 							   <div class="col-md-12 mb-3">
 							   <textarea id="content_page" class="form-control editor" name="user_name" type="text"><?php echo $row['user_name'];?></textarea>
-                           
-            </div>
+            </div>             
                         </div>
                         <div class="modal-footer">
                           <button type="submit" class="btn btn-info" name="update">Update</button>
@@ -148,10 +147,10 @@ include('db_config.php');
                       </div>
                       <!-- /.modal-content -->
                     </div>
-                    <!-- /.modal-dialog -->
+                    <!-- /.modal-dialog -->    
                   </div>
 				  <div class="modal fade" id="del<?php echo $row['id'];?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-				  <div class="modal-dialog modal-lg" role="document">
+				  <div class="modal-dialog modal-lg" role="document">    
 					<div class="modal-content">
 					  <div class="modal-header">
 						<h5 class="modal-title" id="exampleModalLabel">Delete Country</h5>
@@ -290,9 +289,12 @@ include('db_config.php');
     <script src="https://cdn.datatables.net/buttons/1.5.1/js/buttons.print.min.js"></script>
     <link rel="stylesheet" href="assets/bootstrap/bootstrap.min.css">
 
+
+
 <!-- Stylesheet file -->
 <link rel="stylesheet" href="assets/css/style.css">
     <script src="dist/js/pages/datatable/datatable-advanced.init.js"></script>
+
     <script>
 function formToggle(ID){
     var element = document.getElementById(ID);
@@ -303,55 +305,58 @@ function formToggle(ID){
     }
 }
 </script>
+
   </body>
 </html>
+
 
 
 <?php
   if (isset($_POST['submit'])) {
     $user_id = $_POST['user_id'];
     $user_name = $_POST['user_name'];
-    // $registered_date= date('Y-m-d');
-    $sql = "INSERT INTO `tbl_add_bronze`(`user_id`,`user_name`) VALUES ('$user_id','$user_name')";
-    if (mysqli_query($con, $sql)) 
-    {
-      echo'<script type="text/javascript">alert("insert sucessfully");window.location.href = "view_bronze.php";</script>';
 
+    // Assuming you have a valid database connection in $con
+    $sql = "INSERT INTO tbl_add_bronze(user_id,user_name) VALUES ('$user_id','$user_name')";
+    $query = mysqli_query($con, $sql);
+
+    if ($query) {
+      echo '<script type="text/javascript">alert("Insert Successfully"); window.location.href = "view_bronze.php";</script>';
+    } else {
+      echo '<script type="text/javascript">alert("Failed to insert into database"); window.location.href = "view_bronze.php";</script>';
     }
-    else {
-      echo "<script>alert('Failed to upload image.');</script>";
-    }
-  }
-  ?>
+  } 
+?>
    
    <?php 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $sql = "DELETE FROM `tbl_add_bronze` WHERE `id`='$id'";
-     $result = $con->query($sql);
-     if ($result == TRUE) {
-        echo "Record deleted successfully.";
-    }else{
-        echo "Error:" . $sql . "<br>" . $con->error;
+    $res=mysqli_query($con,$sql);
+		if($res){
+			echo '<script type="text/javascript">alert("Deleted sucessfully");window.location.href = "view_bronze.php";</script>';
 
+		}
+}
+		?>
+ 
+
+<?php
+if (isset($_POST['update'])) {
+    $id = mysqli_real_escape_string($con, $_POST['id']);
+    $user_id = mysqli_real_escape_string($con, $_POST['user_id']);
+    $user_name = mysqli_real_escape_string($con, $_POST['user_name']);
+    $sql = "UPDATE `tbl_add_bronze` SET `user_id`='$user_id', `user_name`='$user_name' WHERE `id`='$id'";
+    $result = mysqli_query($con, $sql);
+
+    if ($result) {
+        echo '<script type="text/javascript">alert("Updated successfully."); window.location.href = "view_bronze.php";</script>';
+    } else {
+        echo '<script type="text/javascript">alert("Failed to update."); window.location.href = "view_bronze.php";</script>';
     }
-} 
-?>
+}
 
-<?php 
-    if (isset($_POST['update'])) {
-
-        $user_name = $_POST['user_name'];
-        $user_email_id = $_POST['user_email_id'];
-        $content = $_POST['content'];
-        $sql = "UPDATE `tbl_add_bronze` SET `user_name`='$user_name',`user_email_id`='$user_email_id',`content`='$content' WHERE `id`='$id'"; 
-        $result = mysqli_query($con, $sql);
-        if ($result) {
-            echo '<script type="text/javascript">alert("Updated successfully.");window.location.href = "view_platinum.php";</script>';
-        } else {
-            echo '<script type="text/javascript">alert("Failed to update.");window.location.href = "view_platinum.php";</script>';
-        }
-      }
+mysqli_close($con);
 ?>
    
 

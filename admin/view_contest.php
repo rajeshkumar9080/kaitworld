@@ -90,7 +90,7 @@ Configuration::instance([
                         <tr>
 						              <th>Sl.no</th>
                           <th>Title</th>
-						 <th>Content</th>
+						              <th>Content</th>
                           <th>Image</th>
                           <th>Date</th>
                           <th>Action</th>
