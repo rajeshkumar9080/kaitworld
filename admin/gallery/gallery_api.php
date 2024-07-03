@@ -20,7 +20,7 @@ switch ($requestMethod) {
 
         if ($result_image) {
             while ($row = $result_image->fetch_assoc()) {
-                $row['src'] = '' . $row['user_image'];
+                $row['src'] = $row['user_image'];
                 $row['type'] = 'image';
                 $images[] = $row;
             }
@@ -33,15 +33,21 @@ switch ($requestMethod) {
             exit;
         }
 
-        // Fetch videos
         $query_gallery_video = "SELECT * FROM tbl_add_gallery_video";
         $result_gallery_video = $con->query($query_gallery_video);
 
         if ($result_gallery_video) {
             while ($row = $result_gallery_video->fetch_assoc()) {
-                $row['src'] = '' . $row['video'];
-                $row['type'] = 'video';
-                $videos[] = $row;
+                if (!empty($row['video'])) {
+                    $row['src'] = $row['video'];
+                    $row['type'] = 'video';
+                    $videos[] = $row;
+                }
+                if (!empty($row['y_video'])) {
+                    $row['src'] = $row['y_video'];
+                    $row['type'] = 'y_video';
+                    $videos[] = $row;
+                }
             }
         } else {
             $response = [
@@ -62,44 +68,64 @@ switch ($requestMethod) {
         echo json_encode($response);
         break;
 
-    case 'PUT':
-        // Get the input data
-        parse_str(file_get_contents("php://input"), $put_vars);
-        
-        // Ensure the required fields are present
-        if (isset($put_vars['id']) && isset($put_vars['video'])) {
-            $id = $con->real_escape_string($put_vars['id']);
-            $video = $con->real_escape_string($put_vars['video']);
+    case 'POST':
+        // This example assumes you are sending the video or y_video URL in the POST request
 
-            $update_query = "UPDATE tbl_add_gallery_video SET video='$video' WHERE id='$id'";
+        // Get the raw POST data
+        $postData = file_get_contents("php://input");
+        $data = json_decode($postData, true);
 
-            if ($con->query($update_query) === TRUE) {
+        if (isset($data['video'])) {
+            $videoUrl = $data['video'];
+
+            // Insert video URL into the database
+            $query_insert_video = "INSERT INTO tbl_add_gallery_video (video) VALUES ('$videoUrl')";
+            if ($con->query($query_insert_video) === TRUE) {
                 $response = [
                     'status' => true,
-                    'message' => 'Video updated successfully'
+                    'message' => 'Video URL added successfully'
                 ];
             } else {
                 $response = [
                     'status' => false,
-                    'message' => 'Failed to update video'
+                    'message' => 'Failed to add video URL'
                 ];
             }
+            echo json_encode($response);
+        } elseif (isset($data['y_video'])) {
+            $yVideoUrl = $data['y_video'];
+
+            // Insert y_video URL into the database
+            $query_insert_y_video = "INSERT INTO tbl_add_gallery_video (y_video) VALUES ('$yVideoUrl')";
+            if ($con->query($query_insert_y_video) === TRUE) {
+                $response = [
+                    'status' => true,
+                    'message' => 'YouTube video URL added successfully'
+                ];
+            } else {
+                $response = [
+                    'status' => false,
+                    'message' => 'Failed to add YouTube video URL'
+                ];
+            }
+            echo json_encode($response);
         } else {
             $response = [
                 'status' => false,
-                'message' => 'Invalid input'
+                'message' => 'Video URL or YouTube video URL not provided'
             ];
+            echo json_encode($response);
         }
-        echo json_encode($response);
         break;
+
+    // Add cases for PUT and DELETE if needed
 
     default:
         $response = [
             'status' => false,
-            'message' => 'Unsupported request method'
+            'message' => 'Invalid Request Method'
         ];
         echo json_encode($response);
         break;
 }
-
 ?>

@@ -53,7 +53,8 @@ Configuration::instance([
                       <thead>
                         <tr>
 						             <th>SlNo</th>
-                          <th>place</th>
+                          <th>content</th>
+                          <th>Content</th>
                         <th>EventImage</th>
                           <th>Date</th>
                           <th>Action</th>
@@ -70,7 +71,8 @@ Configuration::instance([
 						?>
                         <tr>
 						  <td><?php echo $i++;?></td>
-                          <td><?php echo $row['place'];?></td>
+              <td><?php echo $row['place'];?></td>
+                          <td><?php echo $row['content'];?></td>
 						   <td  class="pro-list-img"><img src="<?php echo $row['event_image'];?>" style="height: 44px;"></td>
 											
                           <td><?php  $originalDate = $row['registered_date'];  echo $newDate = date("y-m-d", strtotime($originalDate)); ?></td>
@@ -97,7 +99,10 @@ Configuration::instance([
                         <div class="modal-body">                                          
                             <div class="form-group">
 							   <div class="col-md-12 mb-3">
-							   <textarea id="content_page" class="form-control editor" name="place" type="text"><?php echo $row['place'];?></textarea>
+                                <input type="text" class="form-control" name="place" required placeholder="place" value="<?php echo $row['place'];?>"/>
+                              </div> 
+                              <div class="col-md-12 mb-3">
+							   <textarea id="content_page" class="form-control editor" name="content" type="text"><?php echo $row['content'];?></textarea>
                               </div>
 							  <div class="col-md-12 mb-3">
                          <label for="image">Photo</label>
@@ -153,7 +158,7 @@ Configuration::instance([
                       <tfoot>
                         <tr>
 						              <th>Sl.No</th>
-                          <th>Place</th>
+                          <th>content</th>
                         <th>eventImage</th>
                           <th>Date</th>
                           <th>Action</th>
@@ -176,10 +181,14 @@ Configuration::instance([
                         </div>
 						<form class="form-horizontal form-material" method="POST" action="" enctype="multipart/form-data">
                         <div class="modal-body">                         
+                        <div class="form-group">
+                              <div class="col-md-12 mb-3">
+                                <input type="text" class="form-control" name="place" required placeholder="place"/>
+                              </div>
 							<div class="form-group">
                               <div class="col-md-12 mb-3">
                               <label for="validationCustom03" class="form-label"></label>
-							   <textarea id="content_page"class="form-control editor" required name="place" type="text" ></textarea>
+							   <textarea id="content_page"class="form-control editor" required name="content" type="text" ></textarea>
                                
                               </div>
                             </div>  
@@ -267,6 +276,7 @@ Configuration::instance([
 <?php
   if (isset($_POST['submit'])) {
     $place = mysqli_real_escape_string($con, $_POST['place']);
+    $content = mysqli_real_escape_string($con, $_POST['content']);
     $registered_date = date('Y-m-d');
     $event_image = $_FILES["event_image"]["name"];
     $file_tmp = $_FILES["event_image"]["tmp_name"];
@@ -285,12 +295,12 @@ Configuration::instance([
     // Move the uploaded file to the desired directory
     if (move_uploaded_file($file_tmp, $folderName . $event_image)) {
         try {
-            // Upload to Cloudinary
+
             $cloudUpload = (new UploadApi())->upload($folderName . $event_image);
             $cloudinaryUrl = $cloudUpload['secure_url'];
 
             // Insert into database
-            $sql_query = "INSERT INTO tbl_add_eventes (place, event_image, registered_date) VALUES ('$place', '$cloudinaryUrl', '$registered_date')";
+            $sql_query = "INSERT INTO tbl_add_eventes (place, content, event_image, registered_date) VALUES ('$place', '$content', '$cloudinaryUrl', '$registered_date')";
             $query = mysqli_query($con, $sql_query);
 
             if ($query) {
@@ -307,6 +317,9 @@ Configuration::instance([
     } else {
         echo '<script type="text/javascript">alert("Failed to move uploaded file"); window.location.href = "view_events.php";</script>';
     }
+
+    // Close database connection
+    mysqli_close($con);
 }
 ?>
 
@@ -332,6 +345,7 @@ if ($_POST["delete"])
 if (isset($_POST['update'])) { 
   $id = mysqli_real_escape_string($con, $_POST['id']);
   $place = mysqli_real_escape_string($con, $_POST['place']);
+  $content = mysqli_real_escape_string($con, $_POST['content']);
   $event_image = $_FILES["img_files"]["name"];
   $file_tmp = $_FILES["img_files"]["tmp_name"];
   $folderName = "assets/images/gallery/";
@@ -363,14 +377,14 @@ if (isset($_POST['update'])) {
           unlink($filepath);
 
           // Update database record
-          $sql = "UPDATE tbl_add_eventes SET place='$place', event_image='$cloudinaryUrl' WHERE id='$id'";
+          $sql = "UPDATE tbl_add_eventes SET place='$place', content='$content', event_image='$cloudinaryUrl' WHERE id='$id'";
       } catch (Exception $e) {
           echo 'Cloudinary upload failed: ' . $e->getMessage();
           exit();
       }
   } else {
       // Update without changing the image
-      $sql = "UPDATE tbl_add_eventes SET place='$place' WHERE id='$id'";
+      $sql = "UPDATE tbl_add_eventes SET place='$place', content='$content' WHERE id='$id'";
   }
   $result = mysqli_query($con, $sql);
   if ($result) {
@@ -383,9 +397,8 @@ if (isset($_POST['update'])) {
 
 
 <script>
-CKEDITOR.replaceClass = 'editor';
+CKEDITOR.recontentClass = 'editor';
 
-    // CKEDITOR.replace( 'product_desc' );
+    // CKEDITOR.recontent( 'product_desc' );
 </script>   
-
 

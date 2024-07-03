@@ -358,11 +358,10 @@ if (isset($_POST['update'])) {
 
 mysqli_close($con);
 ?>
-   
-
 		
 <script>
 CKEDITOR.replaceClass = 'editor';
 
     // CKEDITOR.replace( 'product_desc' );
 </script>
+

@@ -758,13 +758,66 @@
                 <li class="sidebar-item fw-bold">
                   <a href="view_upcoming_event.php" class="sidebar-link"><i class="mdi mdi-format-align-right "></i><span class="hide-menu">Upcoming Events</span></a>
                 </li>
+                
+                <a class="sidebar-link has-arrow waves-effect waves-dark fw-bold fs-5" href="javascript:void(0)" aria-expanded="false"><i class="mdi mdi-creation"></i><span class="hide-menu">Gold Achivers</span></a>
+                <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item fw-bold">
+                  <a href="view_Gold_Club_Achivers_meet.php" class="sidebar-link"><i class="mdi mdi-format-align-right "></i><span class="hide-menu">Gold Club Achivers meet</span></a>
+                </li>
+                <li class="sidebar-item fw-bold">
+                  <a href="view_Gold_Club_Upcomin_Achivers_meet.php" class="sidebar-link"><i class="mdi mdi-format-align-right "></i><span class="hide-menu">Gold Club Upcoming Achivers meet</span></a>
+                </li>
+                </ul>
+
+                <a class="sidebar-link has-arrow waves-effect waves-dark fw-bold fs-5" href="javascript:void(0)" aria-expanded="false"><i class="mdi mdi-google-circles-extended"></i><span class="hide-menu">Silver Achivers</span></a>
+                <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item fw-bold">
+                  <a href="view_Silver_Club_Achivers_meet.php" class="sidebar-link"><i class="mdi mdi-format-align-right "></i><span class="hide-menu">Silver Club Achivers meet</span></a>
+                </li>
+                <li class="sidebar-item fw-bold">
+                  <a href="view_Silver_Club_Upcoming_Achivers_meet.php" class="sidebar-link"><i class="mdi mdi-format-align-right "></i><span class="hide-menu">Silver Club Upcoming Achivers meet</span></a>
+                </li>
+                </ul>
+
+                <a class="sidebar-link has-arrow waves-effect waves-dark fw-bold fs-5" href="javascript:void(0)" aria-expanded="false"><i class="mdi mdi-file-check"></i><span class="hide-menu">Bronze Achivers</span></a>
+                <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item fw-bold">
+                  <a href="view_Bronze_Club_Achivers_meet.php" class="sidebar-link"><i class="mdi mdi-format-align-right "></i><span class="hide-menu">Bronze Club Achivers meet</span></a>
+                </li>
+                <li class="sidebar-item fw-bold">
+                  <a href="view_Bronze_Club_Upcoming_Achivers_meet.php" class="sidebar-link"><i class="mdi mdi-format-align-right "></i><span class="hide-menu">Bronze Club Upcoming Achivers meet</span></a>
+                </li>
+                </ul>
               </ul>
             </li>
 
-            <li class="sidebar-item">
+            <!-- <li class="sidebar-item">
               <a class="sidebar-link waves-effect waves-dark fw-bold fs-5" href="view_achives.php" aria-expanded="false"><i class="mdi mdi-chart-areaspline"></i>
                 <span class="hide-menu">Achives</span>
               </a>
+            </li> -->
+            <li class="sidebar-item">
+              <a class="sidebar-link has-arrow waves-effect waves-dark fw-bold fs-5" href="javascript:void(0)" aria-expanded="false"><i class="mdi mdi-buffer"></i><span class="hide-menu">All Achives </span></a>
+             <ul aria-expanded="false" class="collapse first-level">
+              <li class="sidebar-item fw-bold">
+                  <a href="view_achives.php" class="sidebar-link"><i class="mdi mdi-format-align-left"></i><span class="hide-menu">Achiver</span></a>
+                </li>
+                <a class="sidebar-link has-arrow waves-effect waves-dark fw-bold fs-5" href="javascript:void(0)" aria-expanded="false"><i class="mdi mdi-trophy-award"></i><span class="hide-menu">Awards </span></a>
+                <ul aria-expanded="false" class="collapse first-level">
+                <li class="sidebar-item fw-bold">
+                  <a href="view_mobile_achives.php" class="sidebar-link"><i class="mdi mdi-format-align-left"></i><span class="hide-menu">Mobile Phone Achivers</span></a>
+                </li>
+                <li class="sidebar-item fw-bold">
+                  <a href="view_labtop_achives.php" class="sidebar-link"><i class="mdi mdi-format-align-left"></i><span class="hide-menu"> Laptop Achivers</span></a>
+                </li>
+                <li class="sidebar-item fw-bold">
+                  <a href="view_ev_bike.php" class="sidebar-link"><i class="mdi mdi-format-align-left"></i><span class="hide-menu">EV Bike Achivers</span></a>
+                </li>
+                <li class="sidebar-item fw-bold">
+                  <a href="view_car.php" class="sidebar-link"><i class="mdi mdi-format-align-left"></i><span class="hide-menu">Car Achivers</span></a>
+                </li>
+                </ul>
+              </ul>
             </li>
             <!-- <li class="sidebar-item">
                 <a class="sidebar-link waves-effect waves-dark" href="view_gallery.php"
@@ -806,23 +859,36 @@
               </ul>
             </li>
 
-            <li class="sidebar-item">
+            <!-- <li class="sidebar-item">
               <a class="sidebar-link waves-effect waves-dark fw-bold fs-5" href="view_trips.php" aria-expanded="false"><i class="mdi mdi-airplane-landing"></i>
                 <span class="hide-menu">Trips </span>
               </a>
-            </li>
+            </li> -->
 
           
             <li class="sidebar-item">
-              <a class="sidebar-link waves-effect waves-dark fw-bold fs-5" href="view_contest.php" aria-expanded="false"><i class="mdi mdi-trophy"></i>
+            <a class="sidebar-link has-arrow waves-effect waves-dark" href="javascript:void(0)" aria-expanded="false"><i class="mdi mdi-chart-line"></i><span class="hide-menu fw-bold fs-5">Contests </span></a>
+            <ul aria-expanded="false" class="collapse first-level">
+              <!-- <a class="sidebar-link waves-effect waves-dark fw-bold fs-5" href="view_contest.php" aria-expanded="false"><i class="mdi mdi-trophy"></i>
                 <span class="hide-menu">Contest </span>
-              </a>
+              </a> -->
+              <li class="sidebar-item fw-bold">
+                  <a href="view_contest.php" class="sidebar-link fs-3"><i class="mdi mdi-format-align-right"></i><span class="hide-menu">Contest</span></a>
+                </li>
+              <li class="sidebar-item fw-bold">
+                  <a href="view_upcoming_contest.php" class="sidebar-link fs-3"><i class="mdi mdi-format-align-right"></i><span class="hide-menu">Upcoming Contest</span></a>
+                </li>
+                <li class="sidebar-item fw-bold">
+                  <a href="view_contest_gallery.php" class="sidebar-link fs-3"><i class="mdi mdi-format-align-right"></i><span class="hide-menu">Contest Gallery</span></a>
+                </li>
+              
+            </ul>
             </li>
-            <li class="sidebar-item">
+            <!-- <li class="sidebar-item">
               <a class="sidebar-link waves-effect waves-dark fw-bold fs-5" href="view_blog.php" aria-expanded="false"><i class="mdi mdi-comment-text-outline"></i>
                 <span class="hide-menu">Blog</span>
               </a>
-            </li>
+            </li> -->
             <!-- <li class="sidebar-item">
                 <a class="sidebar-link waves-effect waves-dark" href="view_content_trip.php"
                   aria-expanded="false"><i class="mdi mdi-image"></i>

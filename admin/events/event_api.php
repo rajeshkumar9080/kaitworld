@@ -47,6 +47,109 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
+    $query_gold_club_achivers_meet = "SELECT * FROM  tbl_add_gold_club_achivers_meet";
+    $result_gold_club_achivers_meet = $con->query($query_gold_club_achivers_meet);
+
+    if ($result_gold_club_achivers_meet) {
+        while ($row = $result_gold_club_achivers_meet->fetch_assoc()) { 
+            $row['gold_club_achivers_image'] = '' . $row['gold_club_achivers_image'];
+            $gold_club_achivers_meet[] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch upcoming_event data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
+
+    $query_gold_club_upcoming_achivers_meet = "SELECT * FROM tbl_add_gold_club_upcoming_achivers_meet";
+    $result_gold_club_upcoming_achivers_meet = $con->query($query_gold_club_upcoming_achivers_meet);
+
+    if ($result_gold_club_upcoming_achivers_meet) {
+        while ($row = $result_gold_club_upcoming_achivers_meet->fetch_assoc()) { 
+            $row['gold_club_achivers_upcomin_image'] = '' . $row['gold_club_achivers_upcomin_image'];
+            $gold_club_upcoming_achivers_meet[] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch upcoming_event data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
+
+    $query_silver_club_achivers_meet = "SELECT * FROM  tbl_add_silver_club_achivers_meet";
+    $result_silver_club_achivers_meet = $con->query($query_silver_club_achivers_meet);
+
+    if ($result_silver_club_achivers_meet) {
+        while ($row = $result_silver_club_achivers_meet->fetch_assoc()) { 
+            $row['silver_club_achivers_image'] = '' . $row['silver_club_achivers_image'];
+            $silver_club_achivers_meet[] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch upcoming_event data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
+
+
+    $query_silver_club_upcoming_achivers_meet = "SELECT * FROM  tbl_add_silver_club_upcoming_achivers_meet";
+    $result_silver_club_upcoming_achivers_meet = $con->query($query_silver_club_upcoming_achivers_meet);
+
+    if ($result_silver_club_upcoming_achivers_meet) {
+        while ($row = $result_silver_club_upcoming_achivers_meet->fetch_assoc()) { 
+            $row['silver_club_achivers_upcomin_image'] = '' . $row['silver_club_achivers_upcomin_image'];
+            $silver_club_upcoming_achivers_meet[] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch upcoming_event data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
+
+    $query_bronze_club_achivers_meet = "SELECT * FROM  tbl_add_bronze_club_achivers_meet";
+    $result_bronze_club_achivers_meet = $con->query($query_bronze_club_achivers_meet);
+
+    if ($result_bronze_club_achivers_meet) {
+        while ($row = $result_bronze_club_achivers_meet->fetch_assoc()) { 
+            $row['bronze_club_achivers_image'] = '' . $row['bronze_club_achivers_image'];
+            $bronze_club_achivers_meet[] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch upcoming_event data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
+
+
+    $query_bronze_club_upcoming_achivers_meet = "SELECT * FROM  tbl_add_bronze_club_upcoming_achivers_meet";
+    $result_bronze_club_upcoming_achivers_meet = $con->query($query_bronze_club_upcoming_achivers_meet);
+
+    if ($result_bronze_club_upcoming_achivers_meet) {
+        while ($row = $result_bronze_club_upcoming_achivers_meet->fetch_assoc()) { 
+            $row['bronze_club_achivers_upcomin_image'] = '' . $row['bronze_club_achivers_upcomin_image'];
+            $bronze_club_upcoming_achivers_meet[] = $row;
+        }
+    } else {
+        $response = [
+            'status' => false,
+            'message' => 'Failed to fetch upcoming_event data'
+        ];
+        echo json_encode($response);
+        exit;
+    }
 
     $response = [
         'status' => true,
@@ -54,12 +157,36 @@ if ($requestMethod === 'GET') {
             [
                 
                 'Events' => 'event',
-                // 'id' => '1', // Additional information for platinum
+                'id' => '1', // Additional information for platinum
                 'members' => $event,],
                 [
-                    'Upcoming Events' => 'upcoming_event',
-                    // 'id' => '1', // Additional information for platinum
+                    'Events' => 'upcoming_event',
+                     'id' => '2', 
                     'members' => $upcoming_event,],
+                [
+                        'Events' => 'Gold Club Achivers meet',
+                         'id' => '3', 
+                        'members' => $gold_club_achivers_meet,],
+                [
+                            'Events' => 'Gold Club Upcoming Achivers meet',
+                             'id' => '3', 
+                            'members' => $gold_club_upcoming_achivers_meet,],
+               [
+                            'Events' => 'Silver Club Achivers meet',
+                             'id' => '4', 
+                            'members' => $silver_club_achivers_meet,],
+                [
+                                'Events' => 'Silver Club Upcoming Achivers meet',
+                                 'id' => '4', 
+                                'members' => $silver_club_upcoming_achivers_meet,],
+                [
+                                'Events' => 'Bronze Club Achivers meet',
+                                 'id' => '5', 
+                                'members' => $bronze_club_achivers_meet,],
+               [
+                                    'Events' => 'Bronze Club Upcoming Achivers meet',
+                                     'id' => '5', 
+                                    'members' => $bronze_club_upcoming_achivers_meet,],
         ]
             ];
             echo json_encode($response);
